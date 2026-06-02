@@ -2,35 +2,21 @@ export function Hero() {
   return (
     <section className="min-h-screen flex items-center justify-center pt-20">
       <div className="max-w-6xl mx-auto px-6 py-20 text-center">
-        <p className="text-sm font-medium text-[--color-accent] mb-4 tracking-wide uppercase">
-          Research Partner of ARIA
-        </p>
-        
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-[--color-text-primary] tracking-tight mb-6">
-          Mathematics for
-          <span className="block text-[--color-accent]">Safer AI</span>
+          See the Structure
+          <span className="block text-[--color-accent]">Make it Run</span>
         </h1>
         
         <p className="text-lg md:text-xl text-[--color-text-secondary] max-w-2xl mx-auto mb-10 leading-relaxed">
-          We build mathematical tools for AI safety and alignment, 
-          working with{' '}
-          <a 
-            href="https://www.aria.org.uk/programme-safeguarded-ai/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-[--color-accent] hover:underline"
-          >
-            ARIA's Safeguarded AI
-          </a>
-          {' '}programme.
+          Turning visual intuition into working code, with mathematical precision.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href="#applet"
+            href="#projects"
             className="px-8 py-3 bg-[--color-accent] text-white font-medium rounded-lg hover:bg-[--color-accent-hover] transition-colors duration-200"
           >
-            Try the Demo
+            Our Projects
           </a>
           <a
             href="#about"

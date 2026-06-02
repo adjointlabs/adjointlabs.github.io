@@ -10,8 +10,8 @@ export function About() {
           <div className="space-y-6 text-[--color-text-secondary] leading-relaxed">
             <p>
               Adjoint Labs is a research company based in Oxford, UK. 
-              We develop mathematical frameworks and software tools 
-              for AI safety and alignment.
+              We develop formal languages and tools for working with 
+              diagrams, structure, and code.
             </p>
             
             <p>
