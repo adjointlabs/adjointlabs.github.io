@@ -12,6 +12,16 @@
   --color-accent: #3b82f6;
   --color-accent-hover: #2563eb;
   --color-border: #e2e8f0;
+  
+  /* Syntax highlighting - light theme */
+  --syntax-keyword: #7c3aed;    /* purple-600 */
+  --syntax-type: #ca8a04;       /* yellow-600 */
+  --syntax-string: #16a34a;     /* green-600 */
+  --syntax-comment: #64748b;    /* slate-500 */
+  --syntax-number: #ea580c;     /* orange-600 */
+  --syntax-operator: #2563eb;   /* blue-600 */
+  --syntax-endpoint: #0891b2;   /* cyan-600 */
+  --syntax-attribute: #c2410c;  /* orange-700 */
 }
 
 /* Dark theme */
@@ -24,6 +34,16 @@
   --color-accent: #60a5fa;
   --color-accent-hover: #3b82f6;
   --color-border: #334155;
+  
+  /* Syntax highlighting - dark theme */
+  --syntax-keyword: #c084fc;    /* purple-400 */
+  --syntax-type: #facc15;       /* yellow-400 */
+  --syntax-string: #4ade80;     /* green-400 */
+  --syntax-comment: #94a3b8;    /* slate-400 */
+  --syntax-number: #fb923c;     /* orange-400 */
+  --syntax-operator: #60a5fa;   /* blue-400 */
+  --syntax-endpoint: #22d3ee;   /* cyan-400 */
+  --syntax-attribute: #fb923c;  /* orange-400 */
 }
 
 html {
