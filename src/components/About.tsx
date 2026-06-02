@@ -4,26 +4,37 @@ export function About() {
       <div className="max-w-6xl mx-auto px-6">
         <div className="max-w-3xl">
           <h2 className="text-3xl md:text-4xl font-bold text-[--color-text-primary] mb-6">
-            About Us
+            About
           </h2>
           
           <div className="space-y-6 text-[--color-text-secondary] leading-relaxed">
             <p>
-              Adjoint Labs is a technology company founded in Oxford, UK, 
-              where we combine deep mathematical expertise with modern software engineering 
-              to solve complex problems.
+              Adjoint Labs is a research company based in Oxford, UK. 
+              We develop mathematical frameworks and software tools 
+              for AI safety and alignment.
             </p>
             
             <p>
-              Our team brings together researchers and engineers with backgrounds 
-              in mathematics, computer science, and physics. We believe that 
-              rigorous foundations lead to better solutions.
-            </p>
-
-            <p>
-              Whether it's developing novel algorithms, building robust software systems, 
-              or providing technical consulting, we approach every challenge with 
-              precision and clarity.
+              We are funded by{' '}
+              <a 
+                href="https://www.aria.org.uk/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[--color-accent] hover:underline"
+              >
+                ARIA
+              </a>
+              {' '}(the UK's Advanced Research + Invention Agency) as part of the{' '}
+              <a 
+                href="https://www.aria.org.uk/programme-safeguarded-ai/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[--color-accent] hover:underline"
+              >
+                Safeguarded AI
+              </a>
+              {' '}programme, which aims to build mathematically grounded 
+              approaches to AI safety.
             </p>
           </div>
         </div>

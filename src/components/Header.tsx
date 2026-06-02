@@ -6,7 +6,8 @@ export function Header() {
 
   const navLinks = [
     { href: '#about', label: 'About' },
-    { href: '#services', label: 'Services' },
+    { href: '#team', label: 'Team' },
+    { href: '#applet', label: 'Demo' },
     { href: '#contact', label: 'Contact' },
   ];
 
