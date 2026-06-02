@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { DotsHighlighter } from '../components/DotsHighlighter';
+import Editor from 'react-simple-code-editor';
+import { highlightDotsCode } from '../components/DotsHighlighter';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 const defaultCode = `graph example {
@@ -51,17 +52,18 @@ export function DotsPlayground() {
           <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface]">
             <span className="text-sm font-medium text-[--color-text-secondary]">Code</span>
           </div>
-          <div className="flex-1 relative overflow-auto">
-            {/* Highlighted code underneath */}
-            <div className="absolute inset-0 p-4 pointer-events-none">
-              <DotsHighlighter code={code} bare />
-            </div>
-            {/* Transparent textarea on top */}
-            <textarea
+          <div className="flex-1 overflow-auto">
+            <Editor
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="absolute inset-0 w-full h-full p-4 bg-transparent text-transparent caret-[--color-text-primary] font-mono text-sm resize-none focus:outline-none"
-              spellCheck={false}
+              onValueChange={setCode}
+              highlight={highlightDotsCode}
+              padding={16}
+              style={{
+                fontFamily: '"Source Code Pro", monospace',
+                fontSize: 14,
+                minHeight: '100%',
+              }}
+              className="focus:outline-none"
             />
           </div>
         </div>

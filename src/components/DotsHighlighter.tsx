@@ -1,5 +1,116 @@
 import React from 'react';
 
+// Escape HTML special characters
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Returns HTML string for use with react-simple-code-editor
+export function highlightDotsCode(code: string): string {
+  const lines = code.split('\n');
+  
+  const highlightLine = (line: string): string => {
+    let result = '';
+    let remaining = line;
+
+    while (remaining.length > 0) {
+      // Comments
+      const commentMatch = remaining.match(/^(\/\/.*)$/);
+      if (commentMatch) {
+        result += `<span style="color: var(--syntax-comment); font-style: italic">${escapeHtml(commentMatch[1])}</span>`;
+        remaining = remaining.slice(commentMatch[1].length);
+        continue;
+      }
+
+      // Strings
+      const stringMatch = remaining.match(/^"([^"\\]|\\.)*"/);
+      if (stringMatch) {
+        result += `<span style="color: var(--syntax-string)">${escapeHtml(stringMatch[0])}</span>`;
+        remaining = remaining.slice(stringMatch[0].length);
+        continue;
+      }
+
+      // Type annotations (:: TypeName)
+      const typeMatch = remaining.match(/^(::)\s*([A-Za-z_][A-Za-z0-9_]*)/);
+      if (typeMatch) {
+        result += `<span style="color: var(--syntax-operator)">${escapeHtml(typeMatch[1])}</span>`;
+        result += ' ';
+        result += `<span style="color: var(--syntax-type)">${escapeHtml(typeMatch[2])}</span>`;
+        remaining = remaining.slice(typeMatch[0].length);
+        continue;
+      }
+
+      // Keywords
+      const keywordMatch = remaining.match(/^(graph|subgraph|port)\b/);
+      if (keywordMatch) {
+        result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(keywordMatch[1])}</span>`;
+        remaining = remaining.slice(keywordMatch[1].length);
+        continue;
+      }
+
+      // Arrows
+      const arrowMatch = remaining.match(/^(->|--)/);
+      if (arrowMatch) {
+        result += `<span style="color: var(--syntax-operator)">${escapeHtml(arrowMatch[1])}</span>`;
+        remaining = remaining.slice(arrowMatch[1].length);
+        continue;
+      }
+
+      // Attribute names (before =)
+      const attrMatch = remaining.match(/^(label|pos|expanded|name|return_wire|dir)(?=\s*=)/);
+      if (attrMatch) {
+        result += `<span style="color: var(--syntax-attribute)">${escapeHtml(attrMatch[1])}</span>`;
+        remaining = remaining.slice(attrMatch[1].length);
+        continue;
+      }
+
+      // Edge endpoints (dotted paths)
+      const edgeMatch = remaining.match(/^([a-zA-Z_][a-zA-Z0-9_]*)(\.[a-zA-Z_][a-zA-Z0-9_]*)+/);
+      if (edgeMatch) {
+        result += `<span style="color: var(--syntax-endpoint)">${escapeHtml(edgeMatch[0])}</span>`;
+        remaining = remaining.slice(edgeMatch[0].length);
+        continue;
+      }
+
+      // Boolean constants
+      const boolMatch = remaining.match(/^(true|false)\b/);
+      if (boolMatch) {
+        result += `<span style="color: var(--syntax-number)">${escapeHtml(boolMatch[1])}</span>`;
+        remaining = remaining.slice(boolMatch[1].length);
+        continue;
+      }
+
+      // Numbers
+      const numMatch = remaining.match(/^-?\d+(\.\d+)?/);
+      if (numMatch) {
+        result += `<span style="color: var(--syntax-number)">${escapeHtml(numMatch[0])}</span>`;
+        remaining = remaining.slice(numMatch[0].length);
+        continue;
+      }
+
+      // Identifiers
+      const idMatch = remaining.match(/^([A-Za-z_][A-Za-z0-9_]*)/);
+      if (idMatch) {
+        result += `<span style="color: var(--color-text-primary)">${escapeHtml(idMatch[1])}</span>`;
+        remaining = remaining.slice(idMatch[1].length);
+        continue;
+      }
+
+      // Default: single character
+      result += escapeHtml(remaining[0]);
+      remaining = remaining.slice(1);
+    }
+
+    return result;
+  };
+
+  return lines.map(highlightLine).join('\n');
+}
+
 interface DotsHighlighterProps {
   code: string;
   bare?: boolean;
