@@ -54,8 +54,8 @@ export function DotsPage() {
 
           {/* Live Demo Button */}
           <div className="mb-16">
-            <a
-              href="#"
+            <Link
+              to="/dots/playground"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[--color-accent] text-white font-medium rounded-lg hover:bg-[--color-accent-hover] transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -63,7 +63,7 @@ export function DotsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Try Live Demo
-            </a>
+            </Link>
           </div>
 
           {/* Language Specification */}

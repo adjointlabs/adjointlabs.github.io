@@ -2,9 +2,10 @@ import React from 'react';
 
 interface DotsHighlighterProps {
   code: string;
+  bare?: boolean;
 }
 
-export function DotsHighlighter({ code }: DotsHighlighterProps) {
+export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
   const highlightLine = (line: string): React.ReactNode[] => {
     const tokens: React.ReactNode[] = [];
     let remaining = line;
@@ -104,7 +105,7 @@ export function DotsHighlighter({ code }: DotsHighlighterProps) {
   const lines = code.split('\n');
 
   return (
-    <pre className="bg-[--color-surface] border border-[--color-border] rounded-lg p-4 overflow-x-auto">
+    <pre className={bare ? "" : "bg-[--color-surface] border border-[--color-border] rounded-lg p-4 overflow-x-auto"}>
       <code className="text-sm font-mono">
         {lines.map((line, i) => (
           <React.Fragment key={i}>
