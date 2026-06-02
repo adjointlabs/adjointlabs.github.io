@@ -73,51 +73,45 @@ export function DotsPage() {
             </h2>
 
             <div className="prose prose-lg max-w-none">
-              {/* Language Header */}
+              {/* Example */}
               <section className="mb-12">
                 <h3 className="text-2xl font-semibold text-[--color-text-primary] mb-4">
-                  Language Header
+                  Example
                 </h3>
-              <p className="text-[--color-text-secondary] mb-4">
-                A DOTS file may begin with a language directive that specifies how type annotations should be interpreted:
-              </p>
-              <DotsHighlighter code={`// language: python
-
-graph my_module {
-  func1 :: FunctionDefinition { ... }
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <DotsHighlighter code={`graph example {
+    Alice :: Person {
+        port out :: default [dir=out]
+    }
+    
+    Bob :: Person {
+        port in :: default [dir=in]
+        port out :: default [dir=out]
+    }
+    
+    Carol :: Person {
+        port in :: default [dir=in]
+    }
+    
+    Alice.out -> Bob.in :: knows
+    Bob.out -> Carol.in :: knows
 }`} />
-              <ul className="list-disc list-inside text-[--color-text-secondary] mt-4 space-y-2">
-                <li><code className="bg-[--color-surface] px-1 rounded">// language: python</code> — types map to Python element catalog (FunctionDefinition, Identifier, etc.)</li>
-                <li>No header or <code className="bg-[--color-surface] px-1 rounded">// language: DOTS</code> — generic mode; all nodes are generic Box, all structures are DiagrammaticStructure</li>
-              </ul>
-            </section>
+                  </div>
+                  <div className="flex items-center justify-center bg-[--color-surface] border border-[--color-border] rounded-lg p-4 min-h-[300px]">
+                    {/* Placeholder for diagram image */}
+                    <p className="text-[--color-text-muted] text-sm">Diagram image placeholder</p>
+                  </div>
+                </div>
+              </section>
 
-            {/* Deviations from DOT */}
-            <section className="mb-12">
-              <h3 className="text-2xl font-semibold text-[--color-text-primary] mb-4">
-                Deviations from DOT
-              </h3>
-              <ul className="space-y-3 text-[--color-text-secondary]">
-                <li><strong className="text-[--color-text-primary]">Removed graph/digraph distinction:</strong> <code className="bg-[--color-surface] px-1 rounded">graph</code> is the only declaration keyword; edges may be individually directed (<code className="bg-[--color-surface] px-1 rounded">{`->`}</code>) or undirected (<code className="bg-[--color-surface] px-1 rounded">--</code>) within the same graph</li>
-                <li><strong className="text-[--color-text-primary]">Removed strict:</strong> multi-edges are always permitted</li>
-                <li><strong className="text-[--color-text-primary]">Type annotations:</strong> nodes and edges may be typed with <code className="bg-[--color-surface] px-1 rounded">:: TypeName</code>; omitted annotations default to <code className="bg-[--color-surface] px-1 rounded">:: default</code></li>
-                <li><strong className="text-[--color-text-primary]">Nodes may contain subgraphs:</strong> a node declaration may include a brace body holding one or more named subgraphs; nesting is recursive</li>
-                <li><strong className="text-[--color-text-primary]">Subgraphs must be named:</strong> anonymous subgraphs do not exist; a name is required for path-based referencing</li>
-                <li><strong className="text-[--color-text-primary]">. is the universal path delimiter:</strong> serves as both nesting separator and port accessor; e.g. <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code></li>
-                <li><strong className="text-[--color-text-primary]">Ports require a name:</strong> compass directions removed; edges attach to named ports only</li>
-                <li><strong className="text-[--color-text-primary]">Ports are declared inside nodes:</strong> ports are first-class entities with types</li>
-                <li><strong className="text-[--color-text-primary]">Ports are mandatory on both ends:</strong> <code className="bg-[--color-surface] px-1 rounded">Alice {`->`} Bob</code> is not valid; both endpoints must qualify a port</li>
-                <li><strong className="text-[--color-text-primary]">Subgraphs cannot be edge endpoints:</strong> edges must begin and end at a named port on a specific node</li>
-              </ul>
-            </section>
-
-            {/* Grammar */}
-            <section className="mb-12">
-              <h3 className="text-2xl font-semibold text-[--color-text-primary] mb-4">
-                Grammar
-              </h3>
-              <pre className="bg-[--color-surface] border border-[--color-border] rounded-lg p-4 overflow-x-auto">
-                <code className="text-sm font-mono text-[--color-text-primary]">{`graph      : 'graph' [ ID ] '{' stmt_list '}'
+              {/* Grammar */}
+              <section className="mb-12">
+                <h3 className="text-2xl font-semibold text-[--color-text-primary] mb-4">
+                  Grammar
+                </h3>
+                <pre className="bg-[--color-surface] border border-[--color-border] rounded-lg p-4 overflow-x-auto">
+                  <code className="text-sm font-mono text-[--color-text-primary]">{`graph      : 'graph' [ ID ] '{' stmt_list '}'
 stmt_list  : [ stmt [ ';' ] stmt_list ]
 stmt       : node_stmt | edge_stmt | attr_stmt | ID '=' ID | subgraph
 attr_stmt  : (graph | node | edge) attr_list
@@ -133,7 +127,26 @@ port_stmt     : 'port' ID [ '::' ID ] [ attr_list ]
 edge_end      : ID '.' id_path
 id_path       : ID [ '.' id_path ]
 subgraph      : 'subgraph' ID '{' stmt_list '}'`}</code>
-              </pre>
+                </pre>
+              </section>
+
+              {/* Language Header */}
+              <section className="mb-12">
+                <h3 className="text-2xl font-semibold text-[--color-text-primary] mb-4">
+                  Language Header
+                </h3>
+              <p className="text-[--color-text-secondary] mb-4">
+                A DOTS file may begin with a language directive that specifies how type annotations should be interpreted:
+              </p>
+              <DotsHighlighter code={`// language: python
+
+graph my_module {
+  func1 :: FunctionDefinition { ... }
+}`} />
+              <ul className="list-disc list-inside text-[--color-text-secondary] mt-4 space-y-2">
+                <li><code className="bg-[--color-surface] px-1 rounded">// language: python</code> — Types map to the Python element catalog (FunctionDefinition, Identifier, etc.).</li>
+                <li>No header or <code className="bg-[--color-surface] px-1 rounded">// language: DOTS</code> — Generic mode; all nodes are generic Box, all structures are DiagrammaticStructure.</li>
+              </ul>
             </section>
 
             {/* ID Forms */}
@@ -142,10 +155,10 @@ subgraph      : 'subgraph' ID '{' stmt_list '}'`}</code>
                 ID Forms
               </h3>
               <ul className="space-y-2 text-[--color-text-secondary]">
-                <li><strong className="text-[--color-text-primary]">Bare name:</strong> <code className="bg-[--color-surface] px-1 rounded">[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*</code> (no leading digit)</li>
-                <li><strong className="text-[--color-text-primary]">Numeral:</strong> <code className="bg-[--color-surface] px-1 rounded">[-]?(.[0-9]+ | [0-9]+(.[0-9]*)?)</code></li>
-                <li><strong className="text-[--color-text-primary]">Quoted string:</strong> <code className="bg-[--color-surface] px-1 rounded">"..."</code> supports <code className="bg-[--color-surface] px-1 rounded">\"</code> escaping; concatenate with <code className="bg-[--color-surface] px-1 rounded">+</code></li>
-                <li><strong className="text-[--color-text-primary]">HTML string:</strong> <code className="bg-[--color-surface] px-1 rounded">&lt;...&gt;</code> angle brackets must be balanced; content must be valid XML</li>
+                <li><strong className="text-[--color-text-primary]">Bare name:</strong> <code className="bg-[--color-surface] px-1 rounded">[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*</code> (no leading digit).</li>
+                <li><strong className="text-[--color-text-primary]">Numeral:</strong> <code className="bg-[--color-surface] px-1 rounded">[-]?(.[0-9]+ | [0-9]+(.[0-9]*)?)</code>.</li>
+                <li><strong className="text-[--color-text-primary]">Quoted string:</strong> <code className="bg-[--color-surface] px-1 rounded">"..."</code> supports <code className="bg-[--color-surface] px-1 rounded">\"</code> escaping; concatenate with <code className="bg-[--color-surface] px-1 rounded">+</code>.</li>
+                <li><strong className="text-[--color-text-primary]">HTML string:</strong> <code className="bg-[--color-surface] px-1 rounded">&lt;...&gt;</code>. Angle brackets must be balanced; content must be valid XML.</li>
               </ul>
             </section>
 
@@ -155,7 +168,7 @@ subgraph      : 'subgraph' ID '{' stmt_list '}'`}</code>
                 Keywords
               </h3>
               <p className="text-[--color-text-secondary]">
-                Case-insensitive: <code className="bg-[--color-surface] px-1 rounded">graph</code>, <code className="bg-[--color-surface] px-1 rounded">node</code>, <code className="bg-[--color-surface] px-1 rounded">edge</code>, <code className="bg-[--color-surface] px-1 rounded">subgraph</code>, <code className="bg-[--color-surface] px-1 rounded">port</code>
+                Case-insensitive: <code className="bg-[--color-surface] px-1 rounded">graph</code>, <code className="bg-[--color-surface] px-1 rounded">node</code>, <code className="bg-[--color-surface] px-1 rounded">edge</code>, <code className="bg-[--color-surface] px-1 rounded">subgraph</code>, <code className="bg-[--color-surface] px-1 rounded">port</code>.
               </p>
             </section>
 
@@ -165,9 +178,9 @@ subgraph      : 'subgraph' ID '{' stmt_list '}'`}</code>
                 Comments
               </h3>
               <ul className="space-y-2 text-[--color-text-secondary]">
-                <li><code className="bg-[--color-surface] px-1 rounded">// ...</code> line comment</li>
-                <li><code className="bg-[--color-surface] px-1 rounded">/* ... */</code> block comment</li>
-                <li>Lines starting with <code className="bg-[--color-surface] px-1 rounded">#</code> are discarded (preprocessor remnants)</li>
+                <li><code className="bg-[--color-surface] px-1 rounded">// ...</code> — Line comment.</li>
+                <li><code className="bg-[--color-surface] px-1 rounded">/* ... */</code> — Block comment.</li>
+                <li><code className="bg-[--color-surface] px-1 rounded">#</code> — Lines starting with this character are discarded (preprocessor remnants).</li>
               </ul>
             </section>
 
@@ -238,6 +251,36 @@ subgraph      : 'subgraph' ID '{' stmt_list '}'`}</code>
               <p className="text-[--color-text-secondary]">
                 UTF-8 by default; Latin-1 via <code className="bg-[--color-surface] px-1 rounded">charset</code> attribute. HTML entities are valid inside HTML strings.
               </p>
+            </section>
+
+            {/* Deviations from DOT */}
+            <section className="mb-12">
+              <h3 className="text-2xl font-semibold text-[--color-text-primary] mb-4">
+                Deviations from DOT
+              </h3>
+              <p className="text-[--color-text-secondary] mb-4">
+                For users familiar with{' '}
+                <a 
+                  href="https://graphviz.org/doc/info/lang.html" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[--color-accent] hover:underline"
+                >
+                  Graphviz DOT
+                </a>, here are the key differences:
+              </p>
+              <ul className="space-y-3 text-[--color-text-secondary]">
+                <li><strong className="text-[--color-text-primary]">Removed graph/digraph distinction:</strong> <code className="bg-[--color-surface] px-1 rounded">graph</code> is the only declaration keyword; edges may be individually directed (<code className="bg-[--color-surface] px-1 rounded">{`->`}</code>) or undirected (<code className="bg-[--color-surface] px-1 rounded">--</code>) within the same graph.</li>
+                <li><strong className="text-[--color-text-primary]">Removed strict:</strong> Multi-edges are always permitted.</li>
+                <li><strong className="text-[--color-text-primary]">Type annotations:</strong> Nodes and edges may be typed with <code className="bg-[--color-surface] px-1 rounded">:: TypeName</code>; omitted annotations default to <code className="bg-[--color-surface] px-1 rounded">:: default</code>.</li>
+                <li><strong className="text-[--color-text-primary]">Nodes may contain subgraphs:</strong> A node declaration may include a brace body holding one or more named subgraphs; nesting is recursive.</li>
+                <li><strong className="text-[--color-text-primary]">Subgraphs must be named:</strong> Anonymous subgraphs do not exist; a name is required for path-based referencing.</li>
+                <li><strong className="text-[--color-text-primary]">. is the universal path delimiter:</strong> Serves as both nesting separator and port accessor, e.g. <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code>.</li>
+                <li><strong className="text-[--color-text-primary]">Ports require a name:</strong> Compass directions are removed; edges attach to named ports only.</li>
+                <li><strong className="text-[--color-text-primary]">Ports are declared inside nodes:</strong> Ports are first-class entities with types.</li>
+                <li><strong className="text-[--color-text-primary]">Ports are mandatory on both ends:</strong> <code className="bg-[--color-surface] px-1 rounded">Alice {`->`} Bob</code> is not valid; both endpoints must qualify a port.</li>
+                <li><strong className="text-[--color-text-primary]">Subgraphs cannot be edge endpoints:</strong> Edges must begin and end at a named port on a specific node.</li>
+              </ul>
             </section>
             </div>
           </section>
