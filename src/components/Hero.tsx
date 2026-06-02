@@ -1,7 +1,10 @@
+import { StringDiagram } from './StringDiagram';
+
 export function Hero() {
   return (
-    <section className="min-h-screen flex items-center justify-center pt-20">
-      <div className="max-w-6xl mx-auto px-6 py-20 text-center">
+    <section className="min-h-screen flex items-center justify-center pt-20 relative overflow-hidden">
+      <StringDiagram />
+      <div className="max-w-6xl mx-auto px-6 py-20 text-center relative z-10">
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-[--color-text-primary] tracking-tight mb-6">
           See the Structure
           <span className="block text-[--color-accent]">Make it Run</span>
