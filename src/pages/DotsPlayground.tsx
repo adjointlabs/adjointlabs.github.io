@@ -81,7 +81,7 @@ export function DotsPlayground() {
       {/* Unified header with breadcrumb */}
       <header className="flex-shrink-0 border-b border-[--color-border] bg-[--color-surface]">
         <div className="px-4 py-3 flex items-center justify-between">
-          <nav className="flex items-center gap-2 text-sm">
+          <nav className="flex items-center gap-2 text-lg">
             <Link 
               to="/dots" 
               className="text-[--color-text-secondary] hover:text-[--color-accent] transition-colors"
