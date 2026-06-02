@@ -2,7 +2,7 @@ export function About() {
   return (
     <section id="about" className="py-24 bg-[--color-surface]">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="max-w-3xl">
+        <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-[--color-text-primary] mb-6">
             About
           </h2>
