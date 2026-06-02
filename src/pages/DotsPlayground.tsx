@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Editor from 'react-simple-code-editor';
 import { highlightDotsCode } from '../components/DotsHighlighter';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -25,7 +25,10 @@ const defaultCode = `graph example {
 export function DotsPlayground() {
   const [code, setCode] = useState(defaultCode);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+  const [splitPercent, setSplitPercent] = useState(33);
+  const [isDragging, setIsDragging] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const lineCount = code.split('\n').length;
 
@@ -38,6 +41,37 @@ export function DotsPlayground() {
       setCursorPos({ line: lines.length, col: lines[lines.length - 1].length + 1 });
     }
   }, [code]);
+
+  const handleMouseDown = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const percent = ((e.clientX - rect.left) / rect.width) * 100;
+    // Clamp between 20% and 80%
+    setSplitPercent(Math.min(80, Math.max(20, percent)));
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
     <div className="min-h-screen bg-[--color-background] flex flex-col">
@@ -60,9 +94,12 @@ export function DotsPlayground() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex min-h-0">
+      <div ref={containerRef} className="flex-1 flex min-h-0">
         {/* Editor panel */}
-        <div className="w-1/3 border-r border-[--color-border] flex flex-col">
+        <div 
+          className="flex flex-col"
+          style={{ width: `${splitPercent}%` }}
+        >
           <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface]">
             <span className="text-sm font-medium text-[--color-text-secondary]">Code</span>
           </div>
@@ -113,8 +150,20 @@ export function DotsPlayground() {
           </div>
         </div>
 
+        {/* Resizable divider */}
+        <div
+          onMouseDown={handleMouseDown}
+          className="flex-shrink-0 cursor-col-resize group relative"
+          style={{ width: '9px', marginLeft: '-4px', marginRight: '-4px' }}
+        >
+          <div className={`absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-[--color-border] group-hover:bg-[--color-accent] transition-colors ${isDragging ? 'bg-[--color-accent]' : ''}`} />
+        </div>
+
         {/* Preview panel */}
-        <div className="w-2/3 flex flex-col">
+        <div 
+          className="flex flex-col"
+          style={{ width: `${100 - splitPercent}%` }}
+        >
           <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface]">
             <span className="text-sm font-medium text-[--color-text-secondary]">Diagram</span>
           </div>
