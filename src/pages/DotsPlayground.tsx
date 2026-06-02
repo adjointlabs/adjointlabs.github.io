@@ -157,7 +157,7 @@ export function DotsPlayground() {
           className="flex-shrink-0 cursor-col-resize group relative"
           style={{ width: '9px', marginLeft: '-4px', marginRight: '-4px' }}
         >
-          <div className={`absolute top-0 bottom-0 w-px bg-[--color-border] group-hover:bg-[--color-accent] ${isDragging ? 'bg-[--color-accent]' : ''}`} style={{ left: '4px' }} />
+          <div className={`absolute top-0 bottom-0 w-px bg-[--color-border] group-hover:bg-[--color-text-muted] ${isDragging ? 'bg-[--color-accent]' : ''}`} style={{ left: '4px' }} />
         </div>
 
         {/* Preview panel */}
