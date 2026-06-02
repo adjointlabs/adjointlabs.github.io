@@ -56,3 +56,26 @@ body {
   color: var(--color-text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Custom scrollbar for playground */
+.playground-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.playground-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.playground-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.playground-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+.playground-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
