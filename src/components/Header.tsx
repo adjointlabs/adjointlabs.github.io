@@ -1,14 +1,15 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '#about', label: 'About' },
-    { href: '#projects', label: 'Projects' },
-    { href: '#team', label: 'Team' },
-    { href: '#contact', label: 'Contact' },
+    { href: '/#about', label: 'About' },
+    { href: '/#projects', label: 'Projects' },
+    { href: '/#team', label: 'Team' },
+    { href: '/#contact', label: 'Contact' },
   ];
 
   return (
@@ -16,9 +17,9 @@ export function Header() {
       <nav className="max-w-6xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <a href="#" className="text-xl font-semibold text-[--color-text-primary] tracking-tight">
+          <Link to="/" className="text-xl font-semibold text-[--color-text-primary] tracking-tight">
             Adjoint Labs
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">

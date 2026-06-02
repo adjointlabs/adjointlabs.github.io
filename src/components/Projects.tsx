@@ -1,30 +1,24 @@
+import { Link } from 'react-router-dom';
+
 interface ProjectProps {
   name: string;
   description: string;
-  link?: string;
+  link: string;
 }
 
 function Project({ name, description, link }: ProjectProps) {
-  const content = (
-    <div className="p-6 rounded-xl bg-[--color-surface] border border-[--color-border] hover:border-[--color-accent] transition-colors">
-      <h3 className="text-xl font-semibold text-[--color-text-primary] mb-3">
-        {name}
-      </h3>
-      <p className="text-[--color-text-secondary] leading-relaxed">
-        {description}
-      </p>
-    </div>
+  return (
+    <Link to={link} className="block">
+      <div className="p-6 rounded-xl bg-[--color-surface] border border-[--color-border] hover:border-[--color-accent] transition-colors">
+        <h3 className="text-xl font-semibold text-[--color-text-primary] mb-3">
+          {name}
+        </h3>
+        <p className="text-[--color-text-secondary] leading-relaxed">
+          {description}
+        </p>
+      </div>
+    </Link>
   );
-
-  if (link) {
-    return (
-      <a href={link} className="block">
-        {content}
-      </a>
-    );
-  }
-
-  return content;
 }
 
 export function Projects() {
@@ -32,10 +26,12 @@ export function Projects() {
     {
       name: 'DOTS',
       description: 'A DSL for compositional, recursive diagrams.',
+      link: '/dots',
     },
     {
       name: 'Sidecar',
       description: 'Round-trip code ↔ architecture visualization.',
+      link: '/sidecar',
     },
   ];
 

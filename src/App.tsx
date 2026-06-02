@@ -1,24 +1,17 @@
-import { Header } from './components/Header';
-import { Hero } from './components/Hero';
-import { About } from './components/About';
-import { Projects } from './components/Projects';
-import { Team } from './components/Team';
-import { Contact } from './components/Contact';
-import { Footer } from './components/Footer';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HomePage } from './pages/HomePage';
+import { DotsPage } from './pages/DotsPage';
+import { SidecarPage } from './pages/SidecarPage';
 
 function App() {
   return (
-    <div className="min-h-screen bg-[--color-background]">
-      <Header />
-      <main>
-        <Hero />
-        <About />
-        <Projects />
-        <Team />
-        <Contact />
-      </main>
-      <Footer />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/dots" element={<DotsPage />} />
+        <Route path="/sidecar" element={<SidecarPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
