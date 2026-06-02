@@ -45,7 +45,7 @@ export function DotsPage() {
               >
                 Graphviz
               </a>
-              ). It extends DOT with support for typed nodes and edges, nested graphs, and mandatory named ports—features designed for representing compositional, recursive diagram structures with mathematical precision.
+              ). It extends DOT with support for typed nodes and edges, nested graphs, and mandatory named ports—features designed for representing compositional, recursive diagram structures.
             </p>
             <p className="text-[--color-text-secondary] leading-relaxed">
               DOTS is used by our tools to represent code architecture, data flow, and other structured relationships in a way that can be programmatically manipulated and rendered.
