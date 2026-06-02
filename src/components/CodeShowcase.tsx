@@ -65,7 +65,6 @@ function createClient(config: Config) {
 // Simple syntax highlighting
 function highlightSyntax(line: string) {
   const keywords = ['const', 'function', 'return', 'await', 'async', 'interface', 'string', 'number'];
-  const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
   
   // Split line into parts, preserving the matches
   const parts = line.split(/(\/\/.*|['"`].*?['"`]|\b(?:const|function|return|await|async|interface|string|number)\b)/g);
