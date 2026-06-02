@@ -75,20 +75,22 @@ export function DotsPlayground() {
 
   return (
     <div className="min-h-screen bg-[--color-background] flex flex-col">
-      {/* Minimal header */}
+      {/* Accent line */}
+      <div className="h-[3px] bg-[--color-accent] flex-shrink-0" />
+      
+      {/* Unified header with breadcrumb */}
       <header className="flex-shrink-0 border-b border-[--color-border] bg-[--color-surface]">
-        <div className="px-4 py-2 border-b border-[--color-border]">
-          <Link 
-            to="/dots" 
-            className="text-sm text-[--color-text-secondary] hover:text-[--color-accent] transition-colors"
-          >
-            ← Back to DOTS
-          </Link>
-        </div>
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-[--color-text-primary]">
-            DOTS Playground
-          </h1>
+          <nav className="flex items-center gap-2 text-sm">
+            <Link 
+              to="/dots" 
+              className="text-[--color-text-secondary] hover:text-[--color-accent] transition-colors"
+            >
+              DOTS
+            </Link>
+            <span className="text-[--color-text-muted]">/</span>
+            <span className="font-medium text-[--color-text-primary]">Playground</span>
+          </nav>
           <ThemeToggle />
         </div>
       </header>
@@ -105,7 +107,6 @@ export function DotsPlayground() {
           </div>
           <div 
             className="flex-1 flex overflow-hidden"
-            style={{ boxShadow: 'inset 0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
           >
             {/* Line numbers */}
             <div 
@@ -156,7 +157,7 @@ export function DotsPlayground() {
           className="flex-shrink-0 cursor-col-resize group relative"
           style={{ width: '9px', marginLeft: '-4px', marginRight: '-4px' }}
         >
-          <div className={`absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-[--color-border] group-hover:bg-[--color-accent] transition-colors ${isDragging ? 'bg-[--color-accent]' : ''}`} />
+          <div className={`absolute top-0 bottom-0 w-px bg-[--color-border] group-hover:bg-[--color-accent] transition-colors ${isDragging ? 'bg-[--color-accent]' : ''}`} style={{ left: '4px' }} />
         </div>
 
         {/* Preview panel */}
@@ -169,7 +170,6 @@ export function DotsPlayground() {
           </div>
           <div 
             className="flex-1 flex items-center justify-center text-[--color-text-muted]"
-            style={{ boxShadow: 'inset 0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
           >
             <p>Diagram preview will appear here</p>
           </div>
