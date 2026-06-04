@@ -52,7 +52,7 @@ export function DotsPage() {
             </p>
           </div>
 
-          {/* Live Demo Button */}
+          {/* Live Demo Button - commented out for now
           <div className="mb-16">
             <Link
               to="/dots/playground"
@@ -65,6 +65,7 @@ export function DotsPage() {
               Try Live Demo
             </Link>
           </div>
+          */}
 
           {/* Language Specification */}
           <section className="mb-16">
