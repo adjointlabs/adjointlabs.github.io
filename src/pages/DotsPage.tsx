@@ -100,8 +100,52 @@ export function DotsPage() {
 }`} />
                   </div>
                   <div className="flex items-center justify-center bg-[--color-surface] border border-[--color-border] rounded-lg p-4 min-h-[300px]">
-                    {/* Placeholder for diagram image */}
-                    <p className="text-[--color-text-muted] text-sm">Diagram image placeholder</p>
+                    {/* Rendered diagram */}
+                    <svg viewBox="0 0 400 200" className="w-full max-w-md" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* Arrow marker */}
+                      <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                          <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" className="text-[--color-text-secondary]" />
+                        </marker>
+                      </defs>
+                      
+                      {/* Alice node */}
+                      <g>
+                        <rect x="20" y="70" width="80" height="60" rx="8" stroke="currentColor" strokeWidth="2" className="text-[--color-text-primary]" fill="none" />
+                        <text x="60" y="95" textAnchor="middle" className="text-[--color-text-primary] text-sm font-medium" fill="currentColor">Alice</text>
+                        <text x="60" y="115" textAnchor="middle" className="text-[--color-text-muted] text-xs" fill="currentColor">Person</text>
+                        {/* out port */}
+                        <circle cx="100" cy="100" r="4" fill="currentColor" className="text-[--color-accent]" />
+                      </g>
+                      
+                      {/* Bob node */}
+                      <g>
+                        <rect x="160" y="70" width="80" height="60" rx="8" stroke="currentColor" strokeWidth="2" className="text-[--color-text-primary]" fill="none" />
+                        <text x="200" y="95" textAnchor="middle" className="text-[--color-text-primary] text-sm font-medium" fill="currentColor">Bob</text>
+                        <text x="200" y="115" textAnchor="middle" className="text-[--color-text-muted] text-xs" fill="currentColor">Person</text>
+                        {/* in port */}
+                        <circle cx="160" cy="100" r="4" fill="currentColor" className="text-[--color-accent]" />
+                        {/* out port */}
+                        <circle cx="240" cy="100" r="4" fill="currentColor" className="text-[--color-accent]" />
+                      </g>
+                      
+                      {/* Carol node */}
+                      <g>
+                        <rect x="300" y="70" width="80" height="60" rx="8" stroke="currentColor" strokeWidth="2" className="text-[--color-text-primary]" fill="none" />
+                        <text x="340" y="95" textAnchor="middle" className="text-[--color-text-primary] text-sm font-medium" fill="currentColor">Carol</text>
+                        <text x="340" y="115" textAnchor="middle" className="text-[--color-text-muted] text-xs" fill="currentColor">Person</text>
+                        {/* in port */}
+                        <circle cx="300" cy="100" r="4" fill="currentColor" className="text-[--color-accent]" />
+                      </g>
+                      
+                      {/* Edge: Alice.out -> Bob.in */}
+                      <line x1="104" y1="100" x2="152" y2="100" stroke="currentColor" strokeWidth="1.5" className="text-[--color-text-secondary]" markerEnd="url(#arrowhead)" />
+                      <text x="128" y="92" textAnchor="middle" className="text-[--color-text-muted] text-xs" fill="currentColor">knows</text>
+                      
+                      {/* Edge: Bob.out -> Carol.in */}
+                      <line x1="244" y1="100" x2="292" y2="100" stroke="currentColor" strokeWidth="1.5" className="text-[--color-text-secondary]" markerEnd="url(#arrowhead)" />
+                      <text x="268" y="92" textAnchor="middle" className="text-[--color-text-muted] text-xs" fill="currentColor">knows</text>
+                    </svg>
                   </div>
                 </div>
               </section>
