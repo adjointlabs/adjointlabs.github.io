@@ -83,20 +83,20 @@ export function DotsPage() {
                   <div>
                     <DotsHighlighter code={`graph example {
     Alice :: Person {
-        port out :: default [dir=out]
+        port out send :: default
     }
     
     Bob :: Person {
-        port in :: default [dir=in]
-        port out :: default [dir=out]
+        port in recv :: default
+        port out send :: default
     }
     
     Carol :: Person {
-        port in :: default [dir=in]
+        port in recv :: default
     }
     
-    Alice.out -> Bob.in :: knows
-    Bob.out -> Carol.in :: knows
+    Alice.send -> Bob.recv :: knows
+    Bob.send -> Carol.recv :: knows
 }`} />
                   </div>
                   <div className="flex items-center justify-center bg-[--color-surface] border border-[--color-border] rounded-lg p-4 min-h-[300px]">
@@ -168,7 +168,7 @@ edgeop     : '->' | '--'
 node_stmt     : ID [ '::' ID ] [ attr_list ] [ node_body ]
 node_body     : '{' node_body_list '}'
 node_body_list: [ ( port_stmt | subgraph ) [ node_body_list ] ]
-port_stmt     : 'port' ID [ '::' ID ] [ attr_list ]
+port_stmt     : 'port' ('in' | 'out') ID [ '::' ID ] [ attr_list ]
 edge_end      : ID '.' id_path
 id_path       : ID [ '.' id_path ]
 subgraph      : 'subgraph' ID '{' stmt_list '}'`}</code>
@@ -250,13 +250,13 @@ graph my_module {
 
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Ports</h4>
               <p className="text-[--color-text-secondary] mb-4">
-                A port is the named attachment point on a node where an edge connects. Ports are declared inside node bodies:
+                A port is the named attachment point on a node where an edge connects. Ports are declared inside node bodies with <code className="bg-[--color-surface] px-1 rounded">port in|out name :: Type [attributes]</code>. The direction (<code className="bg-[--color-surface] px-1 rounded">in</code> or <code className="bg-[--color-surface] px-1 rounded">out</code>) is mandatory and determines the default position (inputs on left, outputs on right). Ports are mandatory on both ends of every edge.
               </p>
               <div className="mb-4">
                 <DotsHighlighter code={`Bob :: Engineer {
-    port in :: default [dir=in]
-    port out :: default [dir=out]
-    port x :: var [dir=in]
+    port in request :: default
+    port out response :: default
+    port in config :: var [label="configuration"]
 }`} />
               </div>
 
@@ -294,8 +294,93 @@ graph my_module {
                 Encoding
               </h3>
               <p className="text-[--color-text-secondary]">
-                UTF-8 by default; Latin-1 via <code className="bg-[--color-surface] px-1 rounded">charset</code> attribute. HTML entities are valid inside HTML strings.
+                UTF-8 by default; Latin-1 via <code className="bg-[--color-surface] px-1 rounded">charset</code> attribute. HTML entities (<code className="bg-[--color-surface] px-1 rounded">&amp;amp;</code>, <code className="bg-[--color-surface] px-1 rounded">&amp;lt;</code>, <code className="bg-[--color-surface] px-1 rounded">&amp;gt;</code>, named entities like <code className="bg-[--color-surface] px-1 rounded">&amp;beta;</code>) are valid inside HTML strings.
               </p>
+            </section>
+
+            {/* Supported Attributes */}
+            <section className="mb-12">
+              <h3 className="text-2xl font-semibold text-[--color-text-primary] mb-4">
+                Supported Attributes
+              </h3>
+              <p className="text-[--color-text-secondary] mb-6">
+                The visualizer currently recognizes the following attributes. Other attributes may be written but are ignored.
+              </p>
+              
+              <h4 className="text-lg font-semibold text-[--color-text-primary] mb-3">Node Attributes</h4>
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full text-sm border border-[--color-border] rounded-lg">
+                  <thead className="bg-[--color-surface]">
+                    <tr>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Attribute</th>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Example</th>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[--color-text-secondary]">
+                    <tr>
+                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">pos</code></td>
+                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">pos="100,200"</code></td>
+                      <td className="px-4 py-2 border-b border-[--color-border]">Position coordinates (x,y)</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">label</code></td>
+                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">label="Display Name"</code></td>
+                      <td className="px-4 py-2 border-b border-[--color-border]">Display label (if different from node name)</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">expanded</code></td>
+                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">expanded=true</code></td>
+                      <td className="px-4 py-2">Expansion state for boxes with subgraphs</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4 className="text-lg font-semibold text-[--color-text-primary] mb-3">Port Attributes</h4>
+              <div className="overflow-x-auto mb-6">
+                <table className="w-full text-sm border border-[--color-border] rounded-lg">
+                  <thead className="bg-[--color-surface]">
+                    <tr>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Attribute</th>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Example</th>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[--color-text-secondary]">
+                    <tr>
+                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">pos</code></td>
+                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">pos=right</code></td>
+                      <td className="px-4 py-2 border-b border-[--color-border]">Side override: left, right, top, bottom. Default: left for in, right for out</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">label</code></td>
+                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">label="input value"</code></td>
+                      <td className="px-4 py-2">Display label (if different from port name)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4 className="text-lg font-semibold text-[--color-text-primary] mb-3">Edge Attributes</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border border-[--color-border] rounded-lg">
+                  <thead className="bg-[--color-surface]">
+                    <tr>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Attribute</th>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Example</th>
+                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[--color-text-secondary]">
+                    <tr>
+                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">name</code></td>
+                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">name="myVar"</code></td>
+                      <td className="px-4 py-2">Variable name (for :: var wires)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </section>
 
             {/* Deviations from DOT */}
