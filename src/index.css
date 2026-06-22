@@ -111,7 +111,7 @@ body {
   --dots-font-size: 13px;
   
   /* VS Code-style variables for canvas drawing (light theme) */
-  --vscode-panel-background: #f8fafc;
+  --vscode-panel-background: var(--color-background);
   --vscode-editorWidget-border: #64748b;
   --vscode-focusBorder: var(--color-accent);
   --vscode-list-hoverBackground: rgba(51, 65, 85, 0.1);
@@ -131,7 +131,7 @@ body {
   --dots-shadow: rgba(0, 0, 0, 0.4);
   
   /* VS Code-style variables for canvas drawing (dark theme) */
-  --vscode-panel-background: #1e293b;
+  --vscode-panel-background: var(--color-background);
   --vscode-editorWidget-border: #475569;
   --vscode-focusBorder: var(--color-accent);
   --vscode-list-hoverBackground: rgba(148, 163, 184, 0.15);
