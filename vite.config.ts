@@ -5,4 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: './',
+  resolve: {
+    alias: {
+      // dots-editor uses "ELK" as external, map to actual elkjs module
+      'ELK': 'elkjs/lib/elk.bundled.js'
+    }
+  },
+  optimizeDeps: {
+    include: ['elkjs/lib/elk.bundled.js']
+  }
 })

@@ -3,34 +3,114 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import Editor from 'react-simple-code-editor';
 import { highlightDotsCode } from '../components/DotsHighlighter';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
+import '@sidecar/dots-editor/style.css';
 
-const defaultCode = `graph example {
-    Alice :: Person {
-        port out :: default [dir=out]
-    }
+// Dynamically import ELK and DotsEditor
+type DotsEditorType = import('@sidecar/dots-editor').DotsEditor;
+
+const defaultCode = `graph nested_example {
+  // A loop-like box with inner structure
+  loop {
+    port in items :: default 
+    port out output :: default
     
-    Bob :: Person {
-        port in :: default [dir=in]
-        port out :: default [dir=out]
+    subgraph body {
+      // Two boxes inside the loop
+      process {
+        port in in :: default 
+        port out out :: default
+      }
+      
+      accumulate {
+        port in in :: default
+        port out result :: default
+      }
+     
+      // Wire connecting them inside the subgraph
+      loop.process.out -> loop.accumulate.in :: default
     }
-    
-    Carol :: Person {
-        port in :: default [dir=in]
-    }
-    
-    Alice.out -> Bob.in :: knows
-    Bob.out -> Carol.in :: knows
+  }
 }`;
 
 export function DotsPlayground() {
+  const { theme } = useTheme();
   const [code, setCode] = useState(defaultCode);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [splitPercent, setSplitPercent] = useState(33);
   const [isDragging, setIsDragging] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [elkLoaded, setElkLoaded] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const diagramRef = useRef<HTMLDivElement>(null);
+  const dotsEditorRef = useRef<DotsEditorType | null>(null);
+  const codeRef = useRef(code); // Keep latest code for theme changes
+
+  // Track code for reinitialization
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
 
   const lineCount = code.split('\n').length;
+
+  // Load ELK first
+  useEffect(() => {
+    import('elkjs/lib/elk.bundled.js').then((ELK) => {
+      // Set ELK as global for dots-editor
+      (window as any).ELK = ELK.default || ELK;
+      setElkLoaded(true);
+    });
+  }, []);
+
+  // Initialize DOTS editor after ELK is loaded (reinitialize on theme change)
+  useEffect(() => {
+    if (!elkLoaded || !diagramRef.current) return;
+
+    // Dispose previous editor on theme change
+    if (dotsEditorRef.current) {
+      dotsEditorRef.current.dispose();
+      dotsEditorRef.current = null;
+    }
+
+    import('@sidecar/dots-editor').then(({ DotsEditor }) => {
+      dotsEditorRef.current = new DotsEditor(diagramRef.current!, {
+        onChange: (newDots) => {
+          // When diagram changes, update the code editor
+          setCode(newDots);
+        }
+      });
+
+      // Load current code
+      try {
+        dotsEditorRef.current.loadFromDots(codeRef.current);
+        setParseError(null);
+      } catch (e) {
+        setParseError((e as Error).message);
+      }
+    });
+
+    return () => {
+      dotsEditorRef.current?.dispose();
+      dotsEditorRef.current = null;
+    };
+  }, [elkLoaded, theme]);
+
+  // Update diagram when code changes (with debounce)
+  useEffect(() => {
+    if (!dotsEditorRef.current) return;
+
+    const timeout = setTimeout(() => {
+      try {
+        dotsEditorRef.current?.loadFromDots(code);
+        setParseError(null);
+      } catch (e) {
+        setParseError((e as Error).message);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [code]);
 
   const updateCursorPosition = useCallback(() => {
     const textarea = editorRef.current?.querySelector('textarea');
@@ -102,7 +182,7 @@ export function DotsPlayground() {
           className="flex flex-col"
           style={{ width: `${splitPercent}%` }}
         >
-          <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface]">
+          <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center h-10">
             <span className="text-sm font-medium text-[--color-text-secondary]">Code</span>
           </div>
           <div 
@@ -165,13 +245,23 @@ export function DotsPlayground() {
           className="flex flex-col"
           style={{ width: `${100 - splitPercent}%` }}
         >
-          <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface]">
+          <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center justify-between h-10">
             <span className="text-sm font-medium text-[--color-text-secondary]">Diagram</span>
+            {parseError && (
+              <span className="text-xs text-red-500 truncate max-w-[200px]" title={parseError}>
+                {parseError}
+              </span>
+            )}
           </div>
           <div 
-            className="flex-1 flex items-center justify-center text-[--color-text-muted]"
-          >
-            <p>Diagram preview will appear here</p>
+            ref={diagramRef}
+            className="flex-1"
+            style={{ backgroundColor: 'var(--vscode-panel-background)' }}
+          />
+          {/* Status bar */}
+          <div className="flex-shrink-0 px-4 py-1.5 border-t border-[--color-border] bg-[--color-surface] flex items-center justify-between text-xs text-[--color-text-muted]">
+            <span>Preview</span>
+            <span>DOTS Graph</span>
           </div>
         </div>
       </div>

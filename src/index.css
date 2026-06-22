@@ -79,3 +79,69 @@ body {
 .playground-scrollbar::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ============================================
+   DOTS Editor Theme Overrides
+   Map website theme variables to dots-editor
+   ============================================ */
+
+/* Light theme (default) */
+:root {
+  --dots-background: var(--color-surface);
+  --dots-foreground: var(--color-text-primary);
+  --dots-border: var(--color-border);
+  --dots-input-background: var(--color-background);
+  --dots-input-foreground: var(--color-text-primary);
+  --dots-input-border: var(--color-border);
+  --dots-button-background: var(--color-accent);
+  --dots-button-foreground: #ffffff;
+  --dots-button-hover: var(--color-accent-hover);
+  --dots-button-secondary-background: var(--color-border);
+  --dots-button-secondary-foreground: var(--color-text-primary);
+  --dots-button-secondary-hover: var(--color-text-muted);
+  --dots-menu-background: var(--color-surface);
+  --dots-menu-foreground: var(--color-text-primary);
+  --dots-menu-border: var(--color-border);
+  --dots-menu-selection-background: var(--color-accent);
+  --dots-menu-selection-foreground: #ffffff;
+  --dots-menu-separator: var(--color-border);
+  --dots-shadow: rgba(0, 0, 0, 0.12);
+  --dots-focus-border: var(--color-accent);
+  --dots-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --dots-font-size: 13px;
+  
+  /* VS Code-style variables for canvas drawing (light theme) */
+  --vscode-panel-background: #f8fafc;
+  --vscode-editorWidget-border: #64748b;
+  --vscode-focusBorder: var(--color-accent);
+  --vscode-list-hoverBackground: rgba(51, 65, 85, 0.1);
+  --vscode-list-activeSelectionBackground: rgba(59, 130, 246, 0.2);
+  --vscode-button-background: var(--color-accent);
+  --vscode-editor-foreground: #334155;
+  --vscode-accent-foreground: var(--color-accent);
+  --vscode-editorGhostText-foreground: #94a3b8;
+  --vscode-editorError-foreground: #dc2626;
+  --vscode-statusBarItem-errorBackground: rgba(220, 38, 38, 0.3);
+  --vscode-editorWarning-foreground: #d97706;
+  --vscode-statusBarItem-warningBackground: rgba(217, 119, 6, 0.3);
+}
+
+/* Dark theme overrides */
+.dark {
+  --dots-shadow: rgba(0, 0, 0, 0.4);
+  
+  /* VS Code-style variables for canvas drawing (dark theme) */
+  --vscode-panel-background: #1e293b;
+  --vscode-editorWidget-border: #475569;
+  --vscode-focusBorder: var(--color-accent);
+  --vscode-list-hoverBackground: rgba(148, 163, 184, 0.15);
+  --vscode-list-activeSelectionBackground: rgba(96, 165, 250, 0.25);
+  --vscode-button-background: var(--color-accent);
+  --vscode-editor-foreground: #e2e8f0;
+  --vscode-accent-foreground: var(--color-accent);
+  --vscode-editorGhostText-foreground: #64748b;
+  --vscode-editorError-foreground: #ef4444;
+  --vscode-statusBarItem-errorBackground: rgba(239, 68, 68, 0.3);
+  --vscode-editorWarning-foreground: #f59e0b;
+  --vscode-statusBarItem-warningBackground: rgba(245, 158, 11, 0.3);
+}
