@@ -112,12 +112,12 @@ body {
   
   /* VS Code-style variables for canvas drawing (light theme) */
   --vscode-panel-background: var(--color-background);
-  --vscode-editorWidget-border: #64748b;
+  --vscode-editorWidget-border: rgba(100, 116, 139, 0.3);  /* softer border */
   --vscode-focusBorder: var(--color-accent);
-  --vscode-list-hoverBackground: rgba(51, 65, 85, 0.1);
-  --vscode-list-activeSelectionBackground: rgba(59, 130, 246, 0.2);
+  --vscode-list-hoverBackground: rgba(51, 65, 85, 0.08);  /* neutral gray */
+  --vscode-list-activeSelectionBackground: rgba(59, 130, 246, 0.15);
   --vscode-button-background: var(--color-accent);
-  --vscode-editor-foreground: #334155;
+  --vscode-editor-foreground: #1e293b;  /* darker text for readability */
   --vscode-accent-foreground: var(--color-accent);
   --vscode-editorGhostText-foreground: #94a3b8;
   --vscode-editorError-foreground: #dc2626;
@@ -132,12 +132,12 @@ body {
   
   /* VS Code-style variables for canvas drawing (dark theme) */
   --vscode-panel-background: var(--color-background);
-  --vscode-editorWidget-border: #475569;
+  --vscode-editorWidget-border: rgba(148, 163, 184, 0.25);  /* subtle border */
   --vscode-focusBorder: var(--color-accent);
-  --vscode-list-hoverBackground: rgba(148, 163, 184, 0.15);
-  --vscode-list-activeSelectionBackground: rgba(96, 165, 250, 0.25);
+  --vscode-list-hoverBackground: rgba(148, 163, 184, 0.12);  /* neutral gray */
+  --vscode-list-activeSelectionBackground: rgba(96, 165, 250, 0.2);
   --vscode-button-background: var(--color-accent);
-  --vscode-editor-foreground: #e2e8f0;
+  --vscode-editor-foreground: #cbd5e1;
   --vscode-accent-foreground: var(--color-accent);
   --vscode-editorGhostText-foreground: #64748b;
   --vscode-editorError-foreground: #ef4444;
