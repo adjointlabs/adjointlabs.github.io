@@ -4,10 +4,10 @@ import Editor from 'react-simple-code-editor';
 import { highlightDotsCode } from '../components/DotsHighlighter';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
-import '@sidecar/dots-editor/style.css';
+import '@adjointlabs/dots-editor/style.css';
 
 // Dynamically import ELK and DotsEditor
-type DotsEditorType = import('@sidecar/dots-editor').DotsEditor;
+type DotsEditorType = import('@adjointlabs/dots-editor').DotsEditor;
 
 const defaultCode = `graph nested_example {
   // A loop-like box with inner structure
@@ -73,7 +73,7 @@ export function DotsPlayground() {
       dotsEditorRef.current = null;
     }
 
-    import('@sidecar/dots-editor').then(({ DotsEditor }) => {
+    import('@adjointlabs/dots-editor').then(({ DotsEditor }) => {
       dotsEditorRef.current = new DotsEditor(diagramRef.current!, {
         onChange: (newDots) => {
           // When diagram changes, update the code editor
