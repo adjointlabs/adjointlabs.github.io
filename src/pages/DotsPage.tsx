@@ -83,16 +83,16 @@ export function DotsPage() {
                   <div>
                     <DotsHighlighter code={`graph example {
     Alice :: Person {
-        port out send :: default
+        port right send
     }
     
     Bob :: Person {
-        port in recv :: default
-        port out send :: default
+        port left recv
+        port right send
     }
     
     Carol :: Person {
-        port in recv :: default
+        port left recv
     }
     
     Alice.send -> Bob.recv :: knows
@@ -156,43 +156,27 @@ export function DotsPage() {
                   Grammar
                 </h3>
                 <pre className="bg-[--color-surface] border border-[--color-border] rounded-lg p-4 overflow-x-auto">
-                  <code className="text-sm font-mono text-[--color-text-primary]">{`graph      : 'graph' [ ID ] '{' stmt_list '}'
-stmt_list  : [ stmt [ ';' ] stmt_list ]
-stmt       : node_stmt | edge_stmt | attr_stmt | ID '=' ID | subgraph
-attr_stmt  : (graph | node | edge) attr_list
-attr_list  : '[' [ a_list ] ']' [ attr_list ]
-a_list     : ID '=' ID [ (';' | ',') ] [ a_list ]
-edge_stmt  : edge_end edgeRHS [ attr_list ]
-edgeRHS    : edgeop edge_end [ '::' ID ] [ edgeRHS ]
+                  <code className="text-sm font-mono text-[--color-text-primary]">{`graph      : 'graph' [ ID ] [ type_ann ] [ attr_list ] block
+block      : '{' ( stmt [ ';' ] )* '}'
+stmt       : node_stmt | edge_stmt | assignment | graph
+
+node_stmt  : ID [ type_ann ] [ attr_list ] [ node_body ]
+node_body  : '{' ( member [ ';' ] )* '}'
+member     : port_stmt | graph
+port_stmt  : 'port' [ placement ] ID [ type_ann ] [ attr_list ]
+placement  : 'left' | 'right' | 'top' | 'bottom'
+           | 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
+
+edge_stmt  : edge_end ( edgeop edge_end [ type_ann ] )+ [ attr_list ]
 edgeop     : '->' | '--'
-node_stmt     : ID [ '::' ID ] [ attr_list ] [ node_body ]
-node_body     : '{' node_body_list '}'
-node_body_list: [ ( port_stmt | subgraph ) [ node_body_list ] ]
-port_stmt     : 'port' ('in' | 'out') ID [ '::' ID ] [ attr_list ]
-edge_end      : ID '.' id_path
-id_path       : ID [ '.' id_path ]
-subgraph      : 'subgraph' ID '{' stmt_list '}'`}</code>
+edge_end   : ID ( '.' ID )+
+type_ann   : '::' ID
+
+attr_list  : ( '[' [ a_list ] ']' )+
+a_list     : ID '=' ID ( ',' ID '=' ID )*
+assignment : ID '=' ID`}</code>
                 </pre>
               </section>
-
-              {/* Language Header */}
-              <section className="mb-12">
-                <h3 className="text-2xl font-semibold text-[--color-text-primary] mb-4">
-                  Language Header
-                </h3>
-              <p className="text-[--color-text-secondary] mb-4">
-                A DOTS file may begin with a language directive that specifies how type annotations should be interpreted:
-              </p>
-              <DotsHighlighter code={`// language: python
-
-graph my_module {
-  func1 :: FunctionDefinition { ... }
-}`} />
-              <ul className="list-disc list-inside text-[--color-text-secondary] mt-4 space-y-2">
-                <li><code className="bg-[--color-surface] px-1 rounded">// language: python</code> — Types map to the Python element catalog (FunctionDefinition, Identifier, etc.).</li>
-                <li>No header or <code className="bg-[--color-surface] px-1 rounded">// language: DOTS</code> — Generic mode; all nodes are generic Box, all structures are DiagrammaticStructure.</li>
-              </ul>
-            </section>
 
             {/* ID Forms */}
             <section className="mb-12">
@@ -213,7 +197,7 @@ graph my_module {
                 Keywords
               </h3>
               <p className="text-[--color-text-secondary]">
-                Case-insensitive: <code className="bg-[--color-surface] px-1 rounded">graph</code>, <code className="bg-[--color-surface] px-1 rounded">node</code>, <code className="bg-[--color-surface] px-1 rounded">edge</code>, <code className="bg-[--color-surface] px-1 rounded">subgraph</code>, <code className="bg-[--color-surface] px-1 rounded">port</code>.
+                Case-insensitive: <code className="bg-[--color-surface] px-1 rounded">graph</code>, <code className="bg-[--color-surface] px-1 rounded">port</code>.
               </p>
             </section>
 
@@ -237,12 +221,18 @@ graph my_module {
               
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Attributes</h4>
               <p className="text-[--color-text-secondary] mb-4">
-                Set via <code className="bg-[--color-surface] px-1 rounded">attr_stmt</code> (<code className="bg-[--color-surface] px-1 rounded">graph [...]</code>, <code className="bg-[--color-surface] px-1 rounded">node [...]</code>, <code className="bg-[--color-surface] px-1 rounded">edge [...]</code>) or inline on a statement. Default attributes apply to all subsequent objects of that type in the same scope.
+                An attribute list is local to the single object it is written on. There are no default-attribute statements, no sibling-level cascade, and no inheritance into or out of nested graphs. Shared appearance across many objects is expressed through their <code className="bg-[--color-surface] px-1 rounded">:: Type</code>, not by attribute propagation.
+              </p>
+              <p className="text-[--color-text-secondary] mb-4">
+                A graph may carry its own inline <code className="bg-[--color-surface] px-1 rounded">attr_list</code> immediately after its type — <code className="bg-[--color-surface] px-1 rounded">graph Team :: Org [rankdir=LR] {'{ }'}</code>. A bare <code className="bg-[--color-surface] px-1 rounded">key = value</code> statement inside a graph body sets that attribute on the enclosing graph.
               </p>
 
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Types</h4>
               <p className="text-[--color-text-secondary] mb-4">
-                A node, edge, or port may be annotated with <code className="bg-[--color-surface] px-1 rounded">:: TypeName</code>. Omitting the annotation is equivalent to <code className="bg-[--color-surface] px-1 rounded">:: default</code>. Edge type is written after the target endpoint per hop:
+                A graph, node, edge, or port may be annotated with <code className="bg-[--color-surface] px-1 rounded">:: TypeName</code>. Omitting the annotation is equivalent to <code className="bg-[--color-surface] px-1 rounded">:: any</code>. A graph carries its type just before its brace body: <code className="bg-[--color-surface] px-1 rounded">graph Name :: Type {'{ }'}</code>.
+              </p>
+              <p className="text-[--color-text-secondary] mb-4">
+                Edge type is written after the target endpoint per hop. In a chain, a hop with no annotation is typed as <code className="bg-[--color-surface] px-1 rounded">any</code>:
               </p>
               <div className="mb-4">
                 <DotsHighlighter code={`A.p -> B.q :: knows -> C.r :: likes`} />
@@ -250,41 +240,47 @@ graph my_module {
 
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Ports</h4>
               <p className="text-[--color-text-secondary] mb-4">
-                A port is the named attachment point on a node where an edge connects. Ports are declared inside node bodies with <code className="bg-[--color-surface] px-1 rounded">port in|out name :: Type [attributes]</code>. The direction (<code className="bg-[--color-surface] px-1 rounded">in</code> or <code className="bg-[--color-surface] px-1 rounded">out</code>) is mandatory and determines the default position (inputs on left, outputs on right). Ports are mandatory on both ends of every edge.
+                A port is the named attachment point on a node where an edge connects. Ports are mandatory on both ends of every edge, so an unqualified node reference is not a valid edge endpoint.
+              </p>
+              <p className="text-[--color-text-secondary] mb-4">
+                A port may optionally be declared inside a node body, which allows it to carry a type and/or attributes. The optional placement marker (<code className="bg-[--color-surface] px-1 rounded">left</code>, <code className="bg-[--color-surface] px-1 rounded">right</code>, <code className="bg-[--color-surface] px-1 rounded">top</code>, <code className="bg-[--color-surface] px-1 rounded">bottom</code>, or corners) is advisory. Declaration is never required — a port referenced in an edge but never declared is implicitly created, untyped (<code className="bg-[--color-surface] px-1 rounded">:: any</code>) and unplaced.
               </p>
               <div className="mb-4">
                 <DotsHighlighter code={`Bob :: Engineer {
-    port in request :: default
-    port out response :: default
-    port in config :: var [label="configuration"]
+    port request                       // declared, untyped, unplaced
+    port right response :: Message     // typed and placed on the right side
+    port topleft config [label="configuration"]
 }`} />
               </div>
 
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Nested Graphs</h4>
               <p className="text-[--color-text-secondary] mb-4">
-                A node may contain one or more named subgraphs in a brace body, making the structure recursive:
+                A node may contain one or more named graphs in a brace body. Each nested graph holds its own statement block, making the structure recursive. Nested graphs must be named (only the outermost graph may be anonymous):
               </p>
               <div className="mb-4">
                 <DotsHighlighter code={`Alice :: Person {
-    subgraph team {
+    graph team :: Team {
         Bob :: Engineer
         Carol :: Designer
-        Bob.out -> Carol.in :: collaborates
+        Bob.helpees -> Carol.helpers :: collaborates
     }
-    subgraph projects {
+    graph projects :: Portfolio {
         P1 :: Project
         P2 :: Project
-        P1.out -> P2.in :: blocks
+        P1.remaining_budget -> P2.budget
     }
 }`} />
               </div>
 
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Path Resolution</h4>
               <p className="text-[--color-text-secondary] mb-4">
-                An <code className="bg-[--color-surface] px-1 rounded">edge_end</code> is a dotted sequence of at least two IDs. For example, <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code> resolves as: node Alice → subgraph team → node Bob → port out.
+                An <code className="bg-[--color-surface] px-1 rounded">edge_end</code> is a dotted sequence of at least two IDs. The first ID must name a node in the current scope. Each subsequent ID except the last must name a nested graph or node along the nesting path. The final ID is always the port name.
+              </p>
+              <p className="text-[--color-text-secondary] mb-4">
+                For example, <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code> resolves as: node <code className="bg-[--color-surface] px-1 rounded">Alice</code> → graph <code className="bg-[--color-surface] px-1 rounded">team</code> inside Alice → node <code className="bg-[--color-surface] px-1 rounded">Bob</code> inside team → port <code className="bg-[--color-surface] px-1 rounded">out</code> on Bob.
               </p>
               <p className="text-[--color-text-secondary]">
-                Edges in an outer graph may target nodes inside any subgraph recursively: <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out {`->`} Dave.in :: reports</code>
+                Edges in an outer graph may target nodes inside any nested graph recursively: <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out {`->`} Dave.in :: reports</code>
               </p>
             </section>
 
@@ -307,8 +303,11 @@ graph my_module {
                 The visualizer currently recognizes the following attributes. Other attributes may be written but are ignored.
               </p>
               
-              <h4 className="text-lg font-semibold text-[--color-text-primary] mb-3">Node Attributes</h4>
-              <div className="overflow-x-auto mb-6">
+              <h4 className="text-lg font-semibold text-[--color-text-primary] mb-3">Reserved Attributes</h4>
+              <p className="text-[--color-text-secondary] mb-4">
+                The language reserves the following attributes. Any other attribute may be written but need not be supported by any renderer.
+              </p>
+              <div className="overflow-x-auto">
                 <table className="w-full text-sm border border-[--color-border] rounded-lg">
                   <thead className="bg-[--color-surface]">
                     <tr>
@@ -326,57 +325,12 @@ graph my_module {
                     <tr>
                       <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">label</code></td>
                       <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">label="Display Name"</code></td>
-                      <td className="px-4 py-2 border-b border-[--color-border]">Display label (if different from node name)</td>
+                      <td className="px-4 py-2 border-b border-[--color-border]">Display label, if different from the graph/node/port name</td>
                     </tr>
                     <tr>
                       <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">expanded</code></td>
                       <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">expanded=true</code></td>
-                      <td className="px-4 py-2">Expansion state for boxes with subgraphs</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <h4 className="text-lg font-semibold text-[--color-text-primary] mb-3">Port Attributes</h4>
-              <div className="overflow-x-auto mb-6">
-                <table className="w-full text-sm border border-[--color-border] rounded-lg">
-                  <thead className="bg-[--color-surface]">
-                    <tr>
-                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Attribute</th>
-                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Example</th>
-                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-[--color-text-secondary]">
-                    <tr>
-                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">pos</code></td>
-                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">pos=right</code></td>
-                      <td className="px-4 py-2 border-b border-[--color-border]">Side override: left, right, top, bottom. Default: left for in, right for out</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">label</code></td>
-                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">label="input value"</code></td>
-                      <td className="px-4 py-2">Display label (if different from port name)</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <h4 className="text-lg font-semibold text-[--color-text-primary] mb-3">Edge Attributes</h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border border-[--color-border] rounded-lg">
-                  <thead className="bg-[--color-surface]">
-                    <tr>
-                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Attribute</th>
-                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Example</th>
-                      <th className="text-left px-4 py-2 border-b border-[--color-border] text-[--color-text-primary]">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-[--color-text-secondary]">
-                    <tr>
-                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">name</code></td>
-                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">name="myVar"</code></td>
-                      <td className="px-4 py-2">Variable name (for :: var wires)</td>
+                      <td className="px-4 py-2">Expansion state for a node that contains nested graphs</td>
                     </tr>
                   </tbody>
                 </table>
@@ -400,16 +354,17 @@ graph my_module {
                 </a>, here are the key differences:
               </p>
               <ul className="space-y-3 text-[--color-text-secondary]">
-                <li><strong className="text-[--color-text-primary]">Removed graph/digraph distinction:</strong> <code className="bg-[--color-surface] px-1 rounded">graph</code> is the only declaration keyword; edges may be individually directed (<code className="bg-[--color-surface] px-1 rounded">{`->`}</code>) or undirected (<code className="bg-[--color-surface] px-1 rounded">--</code>) within the same graph.</li>
-                <li><strong className="text-[--color-text-primary]">Removed strict:</strong> Multi-edges are always permitted.</li>
-                <li><strong className="text-[--color-text-primary]">Type annotations:</strong> Nodes and edges may be typed with <code className="bg-[--color-surface] px-1 rounded">:: TypeName</code>; omitted annotations default to <code className="bg-[--color-surface] px-1 rounded">:: default</code>.</li>
-                <li><strong className="text-[--color-text-primary]">Nodes may contain subgraphs:</strong> A node declaration may include a brace body holding one or more named subgraphs; nesting is recursive.</li>
-                <li><strong className="text-[--color-text-primary]">Subgraphs must be named:</strong> Anonymous subgraphs do not exist; a name is required for path-based referencing.</li>
-                <li><strong className="text-[--color-text-primary]">. is the universal path delimiter:</strong> Serves as both nesting separator and port accessor, e.g. <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code>.</li>
-                <li><strong className="text-[--color-text-primary]">Ports require a name:</strong> Compass directions are removed; edges attach to named ports only.</li>
-                <li><strong className="text-[--color-text-primary]">Ports are declared inside nodes:</strong> Ports are first-class entities with types.</li>
+                <li><strong className="text-[--color-text-primary]">Removed graph/digraph distinction:</strong> <code className="bg-[--color-surface] px-1 rounded">graph</code> is the only declaration keyword; <code className="bg-[--color-surface] px-1 rounded">digraph</code> does not exist. Edges may be individually directed (<code className="bg-[--color-surface] px-1 rounded">{`->`}</code>) or undirected (<code className="bg-[--color-surface] px-1 rounded">--</code>) within the same graph.</li>
+                <li><strong className="text-[--color-text-primary]">Removed strict:</strong> Multi-edges are always permitted; the <code className="bg-[--color-surface] px-1 rounded">strict</code> keyword does not exist.</li>
+                <li><strong className="text-[--color-text-primary]">No separate subgraph keyword:</strong> There is only <code className="bg-[--color-surface] px-1 rounded">graph</code>. A graph nested inside a node or another graph is declared with <code className="bg-[--color-surface] px-1 rounded">graph</code>, exactly like the top level.</li>
+                <li><strong className="text-[--color-text-primary]">Type annotations:</strong> Graphs, nodes, edges, and ports may be typed with <code className="bg-[--color-surface] px-1 rounded">:: TypeName</code>; omitted annotations implicitly default to <code className="bg-[--color-surface] px-1 rounded">:: any</code>.</li>
+                <li><strong className="text-[--color-text-primary]">Nodes may contain graphs:</strong> A node declaration may include a brace body holding one or more named nested graphs; nesting is recursive.</li>
+                <li><strong className="text-[--color-text-primary]">Nested graphs must be named:</strong> Only the outermost graph may be anonymous; nested graphs require a name for path-based referencing.</li>
+                <li><strong className="text-[--color-text-primary]">. is the universal path delimiter:</strong> Serves as both nesting separator and port accessor; the final segment is always the port: <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code>.</li>
+                <li><strong className="text-[--color-text-primary]">Ports require a name; compass directions removed:</strong> Edges attach to a named port only — DOT's compass point syntax does not exist in DOTS.</li>
+                <li><strong className="text-[--color-text-primary]">Ports may optionally be declared:</strong> A port referenced in an edge but never declared is implicitly created, untyped and unplaced. The optional placement marker (<code className="bg-[--color-surface] px-1 rounded">left</code>, <code className="bg-[--color-surface] px-1 rounded">right</code>, etc.) is advisory only.</li>
                 <li><strong className="text-[--color-text-primary]">Ports are mandatory on both ends:</strong> <code className="bg-[--color-surface] px-1 rounded">Alice {`->`} Bob</code> is not valid; both endpoints must qualify a port.</li>
-                <li><strong className="text-[--color-text-primary]">Subgraphs cannot be edge endpoints:</strong> Edges must begin and end at a named port on a specific node.</li>
+                <li><strong className="text-[--color-text-primary]">Graphs cannot be edge endpoints:</strong> Edges must begin and end at a named port on a specific node.</li>
               </ul>
             </section>
             </div>

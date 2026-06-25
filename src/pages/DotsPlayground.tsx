@@ -12,23 +12,23 @@ type DotsEditorType = import('@adjointlabs/dots-editor').DotsEditor;
 const defaultCode = `graph nested_example {
   // A loop-like box with inner structure
   loop {
-    port in items :: default 
-    port out output :: default
+    port left items
+    port right output
     
-    subgraph body {
+    graph body {
       // Two boxes inside the loop
       process {
-        port in in :: default 
-        port out out :: default
+        port left in
+        port right out
       }
       
       accumulate {
-        port in in :: default
-        port out result :: default
+        port left in
+        port right result
       }
      
-      // Wire connecting them inside the subgraph
-      loop.process.out -> loop.accumulate.in :: default
+      // Wire connecting them inside the graph
+      process.out -> accumulate.in
     }
   }
 }`;

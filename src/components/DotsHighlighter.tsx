@@ -44,12 +44,14 @@ export function highlightDotsCode(code: string): string {
         continue;
       }
 
-      // Port declarations: port in|out name
-      const portMatch = remaining.match(/^(port)\s+(in|out)\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+      // Port declarations: port [placement] name
+      const portMatch = remaining.match(/^(port)(?:\s+(left|right|top|bottom|topleft|topright|bottomleft|bottomright))?\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
       if (portMatch) {
         result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(portMatch[1])}</span>`;
-        result += ' ';
-        result += `<span style="color: var(--syntax-keyword)">${escapeHtml(portMatch[2])}</span>`;
+        if (portMatch[2]) {
+          result += ' ';
+          result += `<span style="color: var(--syntax-number)">${escapeHtml(portMatch[2])}</span>`;
+        }
         result += ' ';
         result += `<span style="color: var(--syntax-attribute)">${escapeHtml(portMatch[3])}</span>`;
         remaining = remaining.slice(portMatch[0].length);
@@ -57,7 +59,7 @@ export function highlightDotsCode(code: string): string {
       }
 
       // Keywords
-      const keywordMatch = remaining.match(/^(graph|subgraph|port)\b/);
+      const keywordMatch = remaining.match(/^(graph|port)\b/);
       if (keywordMatch) {
         result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(keywordMatch[1])}</span>`;
         remaining = remaining.slice(keywordMatch[1].length);
@@ -81,7 +83,7 @@ export function highlightDotsCode(code: string): string {
       }
 
       // Position values (after =)
-      const posMatch = remaining.match(/^(left|right|top|bottom)\b/);
+      const posMatch = remaining.match(/^(left|right|top|bottom|topleft|topright|bottomleft|bottomright)\b/);
       if (posMatch) {
         result += `<span style="color: var(--syntax-number)">${escapeHtml(posMatch[1])}</span>`;
         remaining = remaining.slice(posMatch[1].length);
@@ -169,12 +171,14 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
         continue;
       }
 
-      // Port declarations: port in|out name
-      const portMatch = remaining.match(/^(port)\s+(in|out)\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+      // Port declarations: port [placement] name
+      const portMatch = remaining.match(/^(port)(?:\s+(left|right|top|bottom|topleft|topright|bottomleft|bottomright))?\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
       if (portMatch) {
         tokens.push(<span key={key++} className="font-medium" style={{ color: 'var(--syntax-keyword)' }}>{portMatch[1]}</span>);
-        tokens.push(<span key={key++}> </span>);
-        tokens.push(<span key={key++} style={{ color: 'var(--syntax-keyword)' }}>{portMatch[2]}</span>);
+        if (portMatch[2]) {
+          tokens.push(<span key={key++}> </span>);
+          tokens.push(<span key={key++} style={{ color: 'var(--syntax-number)' }}>{portMatch[2]}</span>);
+        }
         tokens.push(<span key={key++}> </span>);
         tokens.push(<span key={key++} style={{ color: 'var(--syntax-attribute)' }}>{portMatch[3]}</span>);
         remaining = remaining.slice(portMatch[0].length);
@@ -182,7 +186,7 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
       }
 
       // Keywords
-      const keywordMatch = remaining.match(/^(graph|subgraph|port)\b/);
+      const keywordMatch = remaining.match(/^(graph|port)\b/);
       if (keywordMatch) {
         tokens.push(<span key={key++} className="font-medium" style={{ color: 'var(--syntax-keyword)' }}>{keywordMatch[1]}</span>);
         remaining = remaining.slice(keywordMatch[1].length);
@@ -206,7 +210,7 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
       }
 
       // Position values (after =)
-      const posMatch = remaining.match(/^(left|right|top|bottom)\b/);
+      const posMatch = remaining.match(/^(left|right|top|bottom|topleft|topright|bottomleft|bottomright)\b/);
       if (posMatch) {
         tokens.push(<span key={key++} style={{ color: 'var(--syntax-number)' }}>{posMatch[1]}</span>);
         remaining = remaining.slice(posMatch[1].length);
