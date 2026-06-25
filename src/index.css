@@ -22,6 +22,9 @@
   --syntax-operator: #2563eb;   /* blue-600 */
   --syntax-endpoint: #0891b2;   /* cyan-600 */
   --syntax-attribute: #c2410c;  /* orange-700 */
+  --syntax-placement: #db2777;  /* pink-600 */
+  --syntax-port: #059669;       /* emerald-600 */
+  --syntax-constant: #dc2626;   /* red-600 */
 }
 
 /* Dark theme */
@@ -44,6 +47,9 @@
   --syntax-operator: #60a5fa;   /* blue-400 */
   --syntax-endpoint: #22d3ee;   /* cyan-400 */
   --syntax-attribute: #fb923c;  /* orange-400 */
+  --syntax-placement: #f472b6;  /* pink-400 */
+  --syntax-port: #34d399;       /* emerald-400 */
+  --syntax-constant: #f87171;   /* red-400 */
 }
 
 html {

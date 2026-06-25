@@ -10,127 +10,155 @@ function escapeHtml(text: string): string {
 }
 
 // Returns HTML string for use with react-simple-code-editor
+// Handles block comments across lines
 export function highlightDotsCode(code: string): string {
-  const lines = code.split('\n');
-  
-  const highlightLine = (line: string): string => {
-    let result = '';
-    let remaining = line;
+  let result = '';
+  let remaining = code;
+  let inBlockComment = false;
 
-    while (remaining.length > 0) {
-      // Comments
-      const commentMatch = remaining.match(/^(\/\/.*)$/);
-      if (commentMatch) {
-        result += `<span style="color: var(--syntax-comment); font-style: italic">${escapeHtml(commentMatch[1])}</span>`;
-        remaining = remaining.slice(commentMatch[1].length);
+  while (remaining.length > 0) {
+    // Block comment end (if inside block comment)
+    if (inBlockComment) {
+      const endMatch = remaining.match(/^([\s\S]*?\*\/)/);
+      if (endMatch) {
+        result += `<span style="color: var(--syntax-comment); font-style: italic">${escapeHtml(endMatch[1])}</span>`;
+        remaining = remaining.slice(endMatch[1].length);
+        inBlockComment = false;
         continue;
+      } else {
+        // Rest of code is inside comment
+        result += `<span style="color: var(--syntax-comment); font-style: italic">${escapeHtml(remaining)}</span>`;
+        break;
       }
-
-      // Strings
-      const stringMatch = remaining.match(/^"([^"\\]|\\.)*"/);
-      if (stringMatch) {
-        result += `<span style="color: var(--syntax-string)">${escapeHtml(stringMatch[0])}</span>`;
-        remaining = remaining.slice(stringMatch[0].length);
-        continue;
-      }
-
-      // Type annotations (:: TypeName)
-      const typeMatch = remaining.match(/^(::)\s*([A-Za-z_][A-Za-z0-9_]*)/);
-      if (typeMatch) {
-        result += `<span style="color: var(--syntax-operator)">${escapeHtml(typeMatch[1])}</span>`;
-        result += ' ';
-        result += `<span style="color: var(--syntax-type)">${escapeHtml(typeMatch[2])}</span>`;
-        remaining = remaining.slice(typeMatch[0].length);
-        continue;
-      }
-
-      // Port declarations: port [placement] name
-      const portMatch = remaining.match(/^(port)(?:\s+(left|right|top|bottom|topleft|topright|bottomleft|bottomright))?\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
-      if (portMatch) {
-        result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(portMatch[1])}</span>`;
-        if (portMatch[2]) {
-          result += ' ';
-          result += `<span style="color: var(--syntax-number)">${escapeHtml(portMatch[2])}</span>`;
-        }
-        result += ' ';
-        result += `<span style="color: var(--syntax-attribute)">${escapeHtml(portMatch[3])}</span>`;
-        remaining = remaining.slice(portMatch[0].length);
-        continue;
-      }
-
-      // Keywords
-      const keywordMatch = remaining.match(/^(graph|port)\b/);
-      if (keywordMatch) {
-        result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(keywordMatch[1])}</span>`;
-        remaining = remaining.slice(keywordMatch[1].length);
-        continue;
-      }
-
-      // Arrows
-      const arrowMatch = remaining.match(/^(->|--)/);
-      if (arrowMatch) {
-        result += `<span style="color: var(--syntax-operator)">${escapeHtml(arrowMatch[1])}</span>`;
-        remaining = remaining.slice(arrowMatch[1].length);
-        continue;
-      }
-
-      // Attribute names (before =)
-      const attrMatch = remaining.match(/^(label|pos|expanded|name|return_wire)(?=\s*=)/);
-      if (attrMatch) {
-        result += `<span style="color: var(--syntax-attribute)">${escapeHtml(attrMatch[1])}</span>`;
-        remaining = remaining.slice(attrMatch[1].length);
-        continue;
-      }
-
-      // Position values (after =)
-      const posMatch = remaining.match(/^(left|right|top|bottom|topleft|topright|bottomleft|bottomright)\b/);
-      if (posMatch) {
-        result += `<span style="color: var(--syntax-number)">${escapeHtml(posMatch[1])}</span>`;
-        remaining = remaining.slice(posMatch[1].length);
-        continue;
-      }
-
-      // Edge endpoints (dotted paths)
-      const edgeMatch = remaining.match(/^([a-zA-Z_][a-zA-Z0-9_]*)(\.[a-zA-Z_][a-zA-Z0-9_]*)+/);
-      if (edgeMatch) {
-        result += `<span style="color: var(--syntax-endpoint)">${escapeHtml(edgeMatch[0])}</span>`;
-        remaining = remaining.slice(edgeMatch[0].length);
-        continue;
-      }
-
-      // Boolean constants
-      const boolMatch = remaining.match(/^(true|false)\b/);
-      if (boolMatch) {
-        result += `<span style="color: var(--syntax-number)">${escapeHtml(boolMatch[1])}</span>`;
-        remaining = remaining.slice(boolMatch[1].length);
-        continue;
-      }
-
-      // Numbers
-      const numMatch = remaining.match(/^-?\d+(\.\d+)?/);
-      if (numMatch) {
-        result += `<span style="color: var(--syntax-number)">${escapeHtml(numMatch[0])}</span>`;
-        remaining = remaining.slice(numMatch[0].length);
-        continue;
-      }
-
-      // Identifiers
-      const idMatch = remaining.match(/^([A-Za-z_][A-Za-z0-9_]*)/);
-      if (idMatch) {
-        result += `<span style="color: var(--color-text-primary)">${escapeHtml(idMatch[1])}</span>`;
-        remaining = remaining.slice(idMatch[1].length);
-        continue;
-      }
-
-      // Default: single character
-      result += escapeHtml(remaining[0]);
-      remaining = remaining.slice(1);
     }
 
-    return result;
-  };
+    // Block comment start
+    const blockCommentMatch = remaining.match(/^(\/\*)/);
+    if (blockCommentMatch) {
+      result += `<span style="color: var(--syntax-comment); font-style: italic">${escapeHtml(blockCommentMatch[1])}</span>`;
+      remaining = remaining.slice(blockCommentMatch[1].length);
+      inBlockComment = true;
+      continue;
+    }
 
-  return lines.map(highlightLine).join('\n');
+    // Line comments
+    const lineCommentMatch = remaining.match(/^(\/\/[^\n]*)/);
+    if (lineCommentMatch) {
+      result += `<span style="color: var(--syntax-comment); font-style: italic">${escapeHtml(lineCommentMatch[1])}</span>`;
+      remaining = remaining.slice(lineCommentMatch[1].length);
+      continue;
+    }
+
+    // Strings (with escape sequences)
+    const stringMatch = remaining.match(/^"([^"\\]|\\.)*"/);
+    if (stringMatch) {
+      result += `<span style="color: var(--syntax-string)">${escapeHtml(stringMatch[0])}</span>`;
+      remaining = remaining.slice(stringMatch[0].length);
+      continue;
+    }
+
+    // Type annotations (:: TypeName)
+    const typeMatch = remaining.match(/^(::)\s*([A-Za-z_][A-Za-z0-9_]*)/);
+    if (typeMatch) {
+      result += `<span style="color: var(--syntax-operator)">${escapeHtml(typeMatch[1])}</span>`;
+      result += ' ';
+      result += `<span style="color: var(--syntax-type)">${escapeHtml(typeMatch[2])}</span>`;
+      remaining = remaining.slice(typeMatch[0].length);
+      continue;
+    }
+
+    // Port declarations: port [placement] name
+    const portMatch = remaining.match(/^(port)\s+(left|right|top|bottom|topleft|topright|bottomleft|bottomright)\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+    if (portMatch) {
+      result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(portMatch[1])}</span>`;
+      result += ' ';
+      result += `<span style="color: var(--syntax-placement)">${escapeHtml(portMatch[2])}</span>`;
+      result += ' ';
+      result += `<span style="color: var(--syntax-port)">${escapeHtml(portMatch[3])}</span>`;
+      remaining = remaining.slice(portMatch[0].length);
+      continue;
+    }
+
+    // Port declarations without placement: port name
+    const portSimpleMatch = remaining.match(/^(port)\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+    if (portSimpleMatch) {
+      result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(portSimpleMatch[1])}</span>`;
+      result += ' ';
+      result += `<span style="color: var(--syntax-port)">${escapeHtml(portSimpleMatch[2])}</span>`;
+      remaining = remaining.slice(portSimpleMatch[0].length);
+      continue;
+    }
+
+    // Keywords
+    const keywordMatch = remaining.match(/^(graph|port)\b/);
+    if (keywordMatch) {
+      result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(keywordMatch[1])}</span>`;
+      remaining = remaining.slice(keywordMatch[1].length);
+      continue;
+    }
+
+    // Arrows
+    const arrowMatch = remaining.match(/^(->|--)/);
+    if (arrowMatch) {
+      result += `<span style="color: var(--syntax-operator)">${escapeHtml(arrowMatch[1])}</span>`;
+      remaining = remaining.slice(arrowMatch[1].length);
+      continue;
+    }
+
+    // Attribute names (before =)
+    const attrMatch = remaining.match(/^(label|pos|expanded|name|return_wire)(?=\s*=)/);
+    if (attrMatch) {
+      result += `<span style="color: var(--syntax-attribute)">${escapeHtml(attrMatch[1])}</span>`;
+      remaining = remaining.slice(attrMatch[1].length);
+      continue;
+    }
+
+    // Position values (after =)
+    const posValueMatch = remaining.match(/^(?<==\s*)(left|right|top|bottom)\b/);
+    if (posValueMatch) {
+      result += `<span style="color: var(--syntax-constant)">${escapeHtml(posValueMatch[1])}</span>`;
+      remaining = remaining.slice(posValueMatch[1].length);
+      continue;
+    }
+
+    // Edge endpoints (dotted paths: id.id.port)
+    const edgeMatch = remaining.match(/^([a-zA-Z_][a-zA-Z0-9_]*)(\.[a-zA-Z_][a-zA-Z0-9_]*)+/);
+    if (edgeMatch) {
+      result += `<span style="color: var(--syntax-endpoint)">${escapeHtml(edgeMatch[0])}</span>`;
+      remaining = remaining.slice(edgeMatch[0].length);
+      continue;
+    }
+
+    // Boolean constants
+    const boolMatch = remaining.match(/^(true|false)\b/);
+    if (boolMatch) {
+      result += `<span style="color: var(--syntax-constant)">${escapeHtml(boolMatch[1])}</span>`;
+      remaining = remaining.slice(boolMatch[1].length);
+      continue;
+    }
+
+    // Numbers
+    const numMatch = remaining.match(/^-?\d+(\.\d+)?/);
+    if (numMatch) {
+      result += `<span style="color: var(--syntax-number)">${escapeHtml(numMatch[0])}</span>`;
+      remaining = remaining.slice(numMatch[0].length);
+      continue;
+    }
+
+    // Identifiers
+    const idMatch = remaining.match(/^([A-Za-z_][A-Za-z0-9_]*)/);
+    if (idMatch) {
+      result += `<span style="color: var(--color-text-primary)">${escapeHtml(idMatch[1])}</span>`;
+      remaining = remaining.slice(idMatch[1].length);
+      continue;
+    }
+
+    // Default: single character (including newlines)
+    result += escapeHtml(remaining[0]);
+    remaining = remaining.slice(1);
+  }
+
+  return result;
 }
 
 interface DotsHighlighterProps {
@@ -139,21 +167,46 @@ interface DotsHighlighterProps {
 }
 
 export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
-  const highlightLine = (line: string): React.ReactNode[] => {
+  // Tokenize entire code (handles block comments across lines)
+  const tokenize = (code: string): React.ReactNode[] => {
     const tokens: React.ReactNode[] = [];
-    let remaining = line;
+    let remaining = code;
     let key = 0;
+    let inBlockComment = false;
 
     while (remaining.length > 0) {
-      // Comments
-      const commentMatch = remaining.match(/^(\/\/.*)$/);
-      if (commentMatch) {
-        tokens.push(<span key={key++} className="italic" style={{ color: 'var(--syntax-comment)' }}>{commentMatch[1]}</span>);
-        remaining = remaining.slice(commentMatch[1].length);
+      // Block comment end (if inside block comment)
+      if (inBlockComment) {
+        const endMatch = remaining.match(/^([\s\S]*?\*\/)/);
+        if (endMatch) {
+          tokens.push(<span key={key++} className="italic" style={{ color: 'var(--syntax-comment)' }}>{endMatch[1]}</span>);
+          remaining = remaining.slice(endMatch[1].length);
+          inBlockComment = false;
+          continue;
+        } else {
+          tokens.push(<span key={key++} className="italic" style={{ color: 'var(--syntax-comment)' }}>{remaining}</span>);
+          break;
+        }
+      }
+
+      // Block comment start
+      const blockCommentMatch = remaining.match(/^(\/\*)/);
+      if (blockCommentMatch) {
+        tokens.push(<span key={key++} className="italic" style={{ color: 'var(--syntax-comment)' }}>{blockCommentMatch[1]}</span>);
+        remaining = remaining.slice(blockCommentMatch[1].length);
+        inBlockComment = true;
         continue;
       }
 
-      // Strings
+      // Line comments
+      const lineCommentMatch = remaining.match(/^(\/\/[^\n]*)/);
+      if (lineCommentMatch) {
+        tokens.push(<span key={key++} className="italic" style={{ color: 'var(--syntax-comment)' }}>{lineCommentMatch[1]}</span>);
+        remaining = remaining.slice(lineCommentMatch[1].length);
+        continue;
+      }
+
+      // Strings (with escape sequences)
       const stringMatch = remaining.match(/^"([^"\\]|\\.)*"/);
       if (stringMatch) {
         tokens.push(<span key={key++} style={{ color: 'var(--syntax-string)' }}>{stringMatch[0]}</span>);
@@ -171,17 +224,25 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
         continue;
       }
 
-      // Port declarations: port [placement] name
-      const portMatch = remaining.match(/^(port)(?:\s+(left|right|top|bottom|topleft|topright|bottomleft|bottomright))?\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+      // Port declarations: port placement name
+      const portMatch = remaining.match(/^(port)\s+(left|right|top|bottom|topleft|topright|bottomleft|bottomright)\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
       if (portMatch) {
         tokens.push(<span key={key++} className="font-medium" style={{ color: 'var(--syntax-keyword)' }}>{portMatch[1]}</span>);
-        if (portMatch[2]) {
-          tokens.push(<span key={key++}> </span>);
-          tokens.push(<span key={key++} style={{ color: 'var(--syntax-number)' }}>{portMatch[2]}</span>);
-        }
         tokens.push(<span key={key++}> </span>);
-        tokens.push(<span key={key++} style={{ color: 'var(--syntax-attribute)' }}>{portMatch[3]}</span>);
+        tokens.push(<span key={key++} style={{ color: 'var(--syntax-placement)' }}>{portMatch[2]}</span>);
+        tokens.push(<span key={key++}> </span>);
+        tokens.push(<span key={key++} style={{ color: 'var(--syntax-port)' }}>{portMatch[3]}</span>);
         remaining = remaining.slice(portMatch[0].length);
+        continue;
+      }
+
+      // Port declarations without placement: port name
+      const portSimpleMatch = remaining.match(/^(port)\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+      if (portSimpleMatch) {
+        tokens.push(<span key={key++} className="font-medium" style={{ color: 'var(--syntax-keyword)' }}>{portSimpleMatch[1]}</span>);
+        tokens.push(<span key={key++}> </span>);
+        tokens.push(<span key={key++} style={{ color: 'var(--syntax-port)' }}>{portSimpleMatch[2]}</span>);
+        remaining = remaining.slice(portSimpleMatch[0].length);
         continue;
       }
 
@@ -210,14 +271,14 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
       }
 
       // Position values (after =)
-      const posMatch = remaining.match(/^(left|right|top|bottom|topleft|topright|bottomleft|bottomright)\b/);
-      if (posMatch) {
-        tokens.push(<span key={key++} style={{ color: 'var(--syntax-number)' }}>{posMatch[1]}</span>);
-        remaining = remaining.slice(posMatch[1].length);
+      const posValueMatch = remaining.match(/^(?<==\s*)(left|right|top|bottom)\b/);
+      if (posValueMatch) {
+        tokens.push(<span key={key++} style={{ color: 'var(--syntax-constant)' }}>{posValueMatch[1]}</span>);
+        remaining = remaining.slice(posValueMatch[1].length);
         continue;
       }
 
-      // Edge endpoints (dotted paths)
+      // Edge endpoints (dotted paths: id.id.port)
       const edgeMatch = remaining.match(/^([a-zA-Z_][a-zA-Z0-9_]*)(\.[a-zA-Z_][a-zA-Z0-9_]*)+/);
       if (edgeMatch) {
         tokens.push(<span key={key++} style={{ color: 'var(--syntax-endpoint)' }}>{edgeMatch[0]}</span>);
@@ -228,7 +289,7 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
       // Boolean constants
       const boolMatch = remaining.match(/^(true|false)\b/);
       if (boolMatch) {
-        tokens.push(<span key={key++} style={{ color: 'var(--syntax-number)' }}>{boolMatch[1]}</span>);
+        tokens.push(<span key={key++} style={{ color: 'var(--syntax-constant)' }}>{boolMatch[1]}</span>);
         remaining = remaining.slice(boolMatch[1].length);
         continue;
       }
@@ -241,7 +302,7 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
         continue;
       }
 
-      // Identifiers (node names at start of content or after newline/whitespace)
+      // Identifiers
       const idMatch = remaining.match(/^([A-Za-z_][A-Za-z0-9_]*)/);
       if (idMatch) {
         tokens.push(<span key={key++} className="text-[--color-text-primary]">{idMatch[1]}</span>);
@@ -249,7 +310,7 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
         continue;
       }
 
-      // Default: single character
+      // Default: single character (including newlines)
       tokens.push(<span key={key++}>{remaining[0]}</span>);
       remaining = remaining.slice(1);
     }
@@ -257,17 +318,10 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
     return tokens;
   };
 
-  const lines = code.split('\n');
-
   return (
     <pre className={bare ? "" : "bg-[--color-surface] border border-[--color-border] rounded-lg p-4 overflow-x-auto"}>
       <code className="text-sm font-mono">
-        {lines.map((line, i) => (
-          <React.Fragment key={i}>
-            {highlightLine(line)}
-            {i < lines.length - 1 && '\n'}
-          </React.Fragment>
-        ))}
+        {tokenize(code)}
       </code>
     </pre>
   );
