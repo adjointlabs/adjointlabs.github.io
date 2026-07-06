@@ -62,6 +62,7 @@ export function DotsPlayground() {
   const [splitPercent, setSplitPercent] = useState(33);
   const [isDragging, setIsDragging] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<string[]>([]);
   const [zoom, setZoom] = useState(1);
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -79,6 +80,13 @@ export function DotsPlayground() {
   }, [code]);
 
   const lineCount = code.split('\n').length;
+
+  // Collect error-severity diagnostics (e.g. edge endpoints that don't
+  // resolve, which otherwise render as no wire, silently).
+  const refreshDiagnostics = useCallback(() => {
+    const diags = dotsEditorRef.current?.getDiagnostics() ?? [];
+    setDiagnostics(diags.filter((d) => d.severity === 'error').map((d) => d.message));
+  }, []);
 
   // Initialize the DOTS editor (reinitialize on theme change).
   // graph-editor/standalone bundles ELK itself, so no global setup is needed.
@@ -100,6 +108,7 @@ export function DotsPlayground() {
           // reload effect below doesn't feed the editor's own output back in.
           lastEmittedRef.current = newDots;
           setCode(newDots);
+          refreshDiagnostics();
         }
       });
 
@@ -107,6 +116,7 @@ export function DotsPlayground() {
       try {
         dotsEditorRef.current.loadFromDots(codeRef.current);
         setParseError(null);
+        refreshDiagnostics();
       } catch (e) {
         setParseError((e as Error).message);
       }
@@ -135,6 +145,7 @@ export function DotsPlayground() {
         // loadFromDots which fully resets the model.
         dotsEditorRef.current?.applyExternalText(code);
         setParseError(null);
+        refreshDiagnostics();
       } catch (e) {
         setParseError((e as Error).message);
       }
@@ -298,11 +309,19 @@ export function DotsPlayground() {
         >
           <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center justify-between h-10">
             <span className="text-sm font-medium text-[--color-text-secondary]">Diagram</span>
-            {parseError && (
-              <span className="text-xs text-red-500 truncate max-w-[200px]" title={parseError}>
+            {parseError ? (
+              <span className="text-xs text-red-500 truncate max-w-[240px]" title={parseError}>
                 {parseError}
               </span>
-            )}
+            ) : diagnostics.length > 0 ? (
+              <span
+                className="text-xs text-amber-500 truncate max-w-[240px]"
+                title={diagnostics.join('\n')}
+              >
+                ⚠ {diagnostics[0]}
+                {diagnostics.length > 1 ? ` (+${diagnostics.length - 1} more)` : ''}
+              </span>
+            ) : null}
           </div>
           <div 
             ref={diagramRef}
