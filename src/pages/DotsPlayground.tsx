@@ -32,7 +32,9 @@ function buildDiagramTheme(): DiagramTheme {
     // Softened muted: visible on the selected fill, but not as stark as the
     // solid muted, which "sticks out" against the light solid box borders.
     clusterBorder: muted + '99',
-    clusterFill: 'transparent',
+    // Subgraph interior reads as empty "space" (same as the canvas background),
+    // so nested boxes look like they sit in a movable area.
+    clusterFill: background,
     headerText: primary,
     typeText: muted,
     port: secondary,
