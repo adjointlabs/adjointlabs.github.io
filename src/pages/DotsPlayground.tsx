@@ -75,9 +75,9 @@ function buildDiagramTheme(): DiagramTheme {
   };
 }
 
-const defaultCode = `// A guarded LLM pipeline. The model reasons internally, a
-// safety classifier screens the output, and only approved
-// text is returned — a feed-forward flow.
+const defaultCode = `// A guarded LLM pipeline. The model contains its own
+// reasoning steps; a safety classifier screens the output
+// and only approved text is returned — a feed-forward flow.
 graph safety {
   Prompt :: Input {
     port right text
@@ -109,11 +109,7 @@ graph safety {
     port left text
   }
 
-  // Boundary wiring into the internal reasoning
-  Model.prompt -> Model.reasoning.draft.in
-  Model.reasoning.revise.out -> Model.output
-
-  // Feed-forward flow
+  // Feed-forward flow (inner reasoning ports are not wired yet)
   Prompt.text -> Model.prompt :: query
   Model.output -> Guard.input :: candidate
   Guard.approved -> Response.text :: safe
