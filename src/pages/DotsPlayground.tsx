@@ -70,6 +70,8 @@ function buildDiagramTheme(): DiagramTheme {
     derivedWire: muted,
     error: '#dc2626',
     staleOverlay: background + '99',
+    // Match the website's code font (Source Code Pro) on the diagram canvas.
+    fontFamily: '"Source Code Pro", ui-monospace, monospace',
   };
 }
 
