@@ -9,9 +9,9 @@ import { buildDiagramTheme } from '../components/diagramTheme';
 // Dynamically import the standalone graph-editor
 type DotsEditorType = import('@adjointlabs/graph-editor/standalone').DotsEditor;
 
-const defaultCode = `// A guarded LLM pipeline. The model contains its own
-// reasoning steps; a safety classifier screens the output
-// and only approved text is returned — a feed-forward flow.
+const defaultCode = `// A guarded LLM pipeline. The model's reasoning is a nested
+// graph with its own boundary ports (in/out), wired through
+// its internal steps; a safety classifier screens the output.
 graph safety {
   Prompt :: Input {
     port right text
@@ -22,6 +22,9 @@ graph safety {
     port right output
 
     graph reasoning :: ChainOfThought {
+      port left in
+      port right out
+
       draft :: Step {
         port left in
         port right out
@@ -30,7 +33,10 @@ graph safety {
         port left in
         port right out
       }
+
+      in -> draft.in
       draft.out -> revise.in :: candidate
+      revise.out -> out
     }
   }
 
@@ -43,7 +49,7 @@ graph safety {
     port left text
   }
 
-  // Feed-forward flow (inner reasoning ports are not wired yet)
+  // Feed-forward flow
   Prompt.text -> Model.prompt :: query
   Model.output -> Guard.input :: candidate
   Guard.approved -> Response.text :: safe
