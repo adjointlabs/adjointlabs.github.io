@@ -153,130 +153,45 @@ body {
 }
 
 /* ============================================
-   Context Menu & Dialog Styling for Website
+   graph-editor context menu & input dialog
+   graph-editor reads these --ge-* custom properties and applies them to its
+   .ge-* menu/dialog elements (appended to <body>, so :root vars cascade in).
    ============================================ */
-
-/* Context Menu - Website Style */
-.context-menu {
-  border-radius: 8px !important;
-  padding: 6px !important;
-  backdrop-filter: blur(8px);
-  background-color: var(--color-surface) !important;
-  color: var(--color-text-primary) !important;
-  border-color: var(--color-border) !important;
+:root {
+  --ge-bg: var(--color-surface);
+  --ge-fg: var(--color-text-primary);
+  --ge-border: var(--color-border);
+  --ge-radius: 8px;
+  --ge-font: 13px 'Inter', system-ui, -apple-system, sans-serif;
+  --ge-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  --ge-accent: rgba(59, 130, 246, 0.14);
+  --ge-input-bg: var(--color-background);
+  --ge-input-fg: var(--color-text-primary);
+  --ge-input-border: var(--color-border);
+  --ge-input-font: 13px ui-monospace, 'JetBrains Mono', monospace;
+  --ge-overlay: rgba(15, 23, 42, 0.35);
 }
 
-.context-menu-item {
+.dark {
+  --ge-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --ge-accent: rgba(96, 165, 250, 0.22);
+  --ge-overlay: rgba(2, 6, 23, 0.55);
+}
+
+/* Rounded, animated hover for menu items (properties graph-editor does not
+   set inline, so no !important needed). */
+.ge-menu-item {
   border-radius: 6px;
-  margin: 2px 0;
-  padding: 8px 12px;
-  color: var(--color-text-primary) !important;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.12s ease;
 }
 
-.context-menu-item:hover {
-  background-color: var(--color-accent) !important;
-  color: white !important;
+/* Replace the browser's default focus ring on the dialog input with the site
+   accent (outline/box-shadow aren't set inline, so no !important needed). */
+.ge-dialog-input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
-.context-menu-header {
-  padding: 6px 12px 4px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-text-muted) !important;
-  font-weight: 600;
-}
-
-.context-menu-separator {
-  margin: 6px 8px;
-  background-color: var(--color-border) !important;
-}
-
-.submenu {
-  border-radius: 8px !important;
-  padding: 6px !important;
-  margin-left: 4px;
-  backdrop-filter: blur(8px);
-  background-color: var(--color-surface) !important;
-  color: var(--color-text-primary) !important;
-  border-color: var(--color-border) !important;
-}
-
-.context-menu-search {
-  border-radius: 6px;
-  margin: 4px;
-  padding: 8px 12px !important;
-  width: calc(100% - 8px);
-  background-color: var(--color-background) !important;
-  color: var(--color-text-primary) !important;
-  border-color: var(--color-border) !important;
-}
-
-/* Modal Dialog - Website Style */
-.modal-overlay {
-  backdrop-filter: blur(4px);
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.dark .modal-overlay {
-  background-color: rgba(0, 0, 0, 0.6);
-}
-
-.modal-dialog {
-  border-radius: 12px !important;
-  padding: 20px !important;
-  background-color: var(--color-surface) !important;
-  border: 1px solid var(--color-border) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2) !important;
-  min-width: 320px;
-}
-
-.modal-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: var(--color-text-primary) !important;
-}
-
-.modal-input {
-  border-radius: 8px !important;
-  padding: 10px 12px !important;
-  margin-bottom: 20px !important;
-  background-color: var(--color-background) !important;
-  border: 1px solid var(--color-border) !important;
-  color: var(--color-text-primary) !important;
-  font-size: 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.modal-input:focus {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
-}
-
-.modal-buttons {
-  gap: 10px;
-}
-
-.modal-button {
-  border-radius: 8px !important;
-  padding: 8px 16px !important;
-  font-size: 14px;
-  font-weight: 500;
-  background-color: var(--color-border) !important;
-  color: var(--color-text-primary) !important;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-}
-
-.modal-button:hover {
-  background-color: var(--color-text-muted) !important;
-  transform: translateY(-1px);
-}
-
-.modal-button:active {
-  transform: translateY(0);
-}
 
 .modal-button-primary {
   background-color: var(--color-accent) !important;
