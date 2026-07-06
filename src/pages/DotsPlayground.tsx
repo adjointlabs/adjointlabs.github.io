@@ -75,28 +75,51 @@ function buildDiagramTheme(): DiagramTheme {
   };
 }
 
-const defaultCode = `graph nested_example {
-  // A loop-like box with inner structure
-  loop {
-    port left items
-    port right output
-    
-    graph body {
-      // Two boxes inside the loop
-      process {
+const defaultCode = `// A streaming ingestion service.
+// Nodes are typed (:: Type), edges carry relations, and the
+// Ingest service expands into its own internal flow — edges
+// cross the service boundary into the nested graph.
+graph pipeline {
+  Source :: Kafka {
+    port right events
+  }
+
+  Ingest :: Service {
+    port left in
+    port right out
+
+    graph flow :: Pipeline {
+      validate :: Stage {
+        port left in
+        port right ok
+      }
+      enrich :: Stage {
         port left in
         port right out
       }
-      
-      accumulate {
-        port left in
-        port right result
-      }
-     
-      // Wire connecting them inside the graph
-      process.out -> accumulate.in
+      validate.ok -> enrich.in :: record
     }
   }
+
+  Store :: Postgres {
+    port left writes
+  }
+
+  Cache :: Redis {
+    port left updates
+  }
+
+  // Wire the service boundary to its internal flow
+  Ingest.in -> Ingest.flow.validate.in
+  Ingest.flow.enrich.out -> Ingest.out
+
+  // Cross-service data flow
+  Source.events -> Ingest.in :: stream
+  Ingest.out -> Store.writes :: upsert
+  Ingest.out -> Cache.updates :: invalidate
+
+  // Replication is symmetric, so it is undirected
+  Store.writes -- Cache.updates :: replicate
 }`;
 
 export function DotsPlayground() {
