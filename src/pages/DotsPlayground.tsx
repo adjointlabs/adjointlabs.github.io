@@ -7,6 +7,44 @@ import { useTheme } from '../context/ThemeContext';
 
 // Dynamically import the standalone graph-editor
 type DotsEditorType = import('@adjointlabs/graph-editor/standalone').DotsEditor;
+type DiagramTheme = import('@adjointlabs/graph-editor/standalone').Theme;
+
+// Build the canvas theme from the site's --color-* CSS variables, which are
+// defined per light/dark in index.css. Called inside the editor-init effect
+// (after the .dark class toggle is applied) so it reflects the active theme.
+// graph-editor renders to <canvas>, so it needs concrete colors, not CSS vars.
+function buildDiagramTheme(): DiagramTheme {
+  const s = getComputedStyle(document.documentElement);
+  const v = (name: string, fallback: string) => s.getPropertyValue(name).trim() || fallback;
+  const primary = v('--color-text-primary', '#0f172a');
+  const secondary = v('--color-text-secondary', '#475569');
+  const muted = v('--color-text-muted', '#94a3b8');
+  const border = v('--color-border', '#e2e8f0');
+  const accent = v('--color-accent', '#3b82f6');
+  const surface = v('--color-surface', '#ffffff');
+  const background = v('--color-background', '#fafafa');
+  return {
+    background,
+    boxBorder: border,
+    boxBorderSelected: accent,
+    boxFill: surface,
+    boxFillSelected: accent + '22',
+    clusterBorder: border,
+    clusterFill: 'transparent',
+    headerText: primary,
+    typeText: muted,
+    port: secondary,
+    portHover: accent,
+    portText: secondary,
+    wire: primary,
+    wireSelected: accent,
+    wireLabel: muted,
+    stub: muted,
+    derivedWire: muted,
+    error: '#dc2626',
+    staleOverlay: background + '99',
+  };
+}
 
 const defaultCode = `graph nested_example {
   // A loop-like box with inner structure
@@ -65,6 +103,7 @@ export function DotsPlayground() {
 
     import('@adjointlabs/graph-editor/standalone').then(({ DotsEditor }) => {
       dotsEditorRef.current = new DotsEditor(diagramRef.current!, {
+        theme: buildDiagramTheme(),
         onChange: (newDots) => {
           // When diagram changes, update the code editor
           setCode(newDots);
