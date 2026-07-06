@@ -75,39 +75,48 @@ function buildDiagramTheme(): DiagramTheme {
   };
 }
 
-const defaultCode = `// A monitored agent. The policy reasons internally, proposes
-// an action, and an overseer must approve it — with the
-// verdict looping back as feedback.
-graph oversight {
-  Agent :: Policy {
-    port left goal
-    port right action
+const defaultCode = `// A guarded LLM pipeline. The model reasons internally, a
+// safety classifier screens the output, and only approved
+// text is returned — a feed-forward flow.
+graph safety {
+  Prompt :: Input {
+    port right text
+  }
+
+  Model :: LLM {
+    port left prompt
+    port right output
 
     graph reasoning :: ChainOfThought {
-      propose :: Step {
+      draft :: Step {
         port left in
         port right out
       }
-      critique :: Step {
+      revise :: Step {
         port left in
         port right out
       }
-      propose.out -> critique.in :: draft
+      draft.out -> revise.in :: candidate
     }
   }
 
-  Monitor :: Overseer {
-    port left action
-    port right verdict
+  Guard :: SafetyFilter {
+    port left input
+    port right approved
+  }
+
+  Response :: Output {
+    port left text
   }
 
   // Boundary wiring into the internal reasoning
-  Agent.goal -> Agent.reasoning.propose.in
-  Agent.reasoning.critique.out -> Agent.action
+  Model.prompt -> Model.reasoning.draft.in
+  Model.reasoning.revise.out -> Model.output
 
-  // Oversight loop
-  Agent.action -> Monitor.action :: proposed
-  Monitor.verdict -> Agent.goal :: feedback
+  // Feed-forward flow
+  Prompt.text -> Model.prompt :: query
+  Model.output -> Guard.input :: candidate
+  Guard.approved -> Response.text :: safe
 }`;
 
 export function DotsPlayground() {
