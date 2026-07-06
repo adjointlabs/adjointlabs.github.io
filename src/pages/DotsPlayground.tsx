@@ -75,51 +75,39 @@ function buildDiagramTheme(): DiagramTheme {
   };
 }
 
-const defaultCode = `// A streaming ingestion service.
-// Nodes are typed (:: Type), edges carry relations, and the
-// Ingest service expands into its own internal flow — edges
-// cross the service boundary into the nested graph.
-graph pipeline {
-  Source :: Kafka {
-    port right events
-  }
+const defaultCode = `// A monitored agent. The policy reasons internally, proposes
+// an action, and an overseer must approve it — with the
+// verdict looping back as feedback.
+graph oversight {
+  Agent :: Policy {
+    port left goal
+    port right action
 
-  Ingest :: Service {
-    port left in
-    port right out
-
-    graph flow :: Pipeline {
-      validate :: Stage {
-        port left in
-        port right ok
-      }
-      enrich :: Stage {
+    graph reasoning :: ChainOfThought {
+      propose :: Step {
         port left in
         port right out
       }
-      validate.ok -> enrich.in :: record
+      critique :: Step {
+        port left in
+        port right out
+      }
+      propose.out -> critique.in :: draft
     }
   }
 
-  Store :: Postgres {
-    port left writes
+  Monitor :: Overseer {
+    port left action
+    port right verdict
   }
 
-  Cache :: Redis {
-    port left updates
-  }
+  // Boundary wiring into the internal reasoning
+  Agent.goal -> Agent.reasoning.propose.in
+  Agent.reasoning.critique.out -> Agent.action
 
-  // Wire the service boundary to its internal flow
-  Ingest.in -> Ingest.flow.validate.in
-  Ingest.flow.enrich.out -> Ingest.out
-
-  // Cross-service data flow
-  Source.events -> Ingest.in :: stream
-  Ingest.out -> Store.writes :: upsert
-  Ingest.out -> Cache.updates :: invalidate
-
-  // Replication is symmetric, so it is undirected
-  Store.writes -- Cache.updates :: replicate
+  // Oversight loop
+  Agent.action -> Monitor.action :: proposed
+  Monitor.verdict -> Agent.goal :: feedback
 }`;
 
 export function DotsPlayground() {
