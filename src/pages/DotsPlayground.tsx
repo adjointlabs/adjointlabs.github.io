@@ -106,6 +106,8 @@ export function DotsPlayground() {
   const [splitPercent, setSplitPercent] = useState(33);
   const [isDragging, setIsDragging] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
@@ -136,6 +138,7 @@ export function DotsPlayground() {
     import('@adjointlabs/graph-editor/standalone').then(({ DotsEditor }) => {
       dotsEditorRef.current = new DotsEditor(diagramRef.current!, {
         theme: buildDiagramTheme(),
+        onViewportChange: (z) => setZoom(z),
         onChange: (newDots) => {
           // When diagram changes, update the code editor. Record it so the
           // reload effect below doesn't feed the editor's own output back in.
@@ -209,6 +212,26 @@ export function DotsPlayground() {
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
+
+  // Zoom controls for the diagram status bar.
+  const applyZoom = useCallback((z: number) => {
+    dotsEditorRef.current?.setZoom(z);
+    setZoomMenuOpen(false);
+  }, []);
+
+  const zoomToFit = useCallback(() => {
+    dotsEditorRef.current?.zoomToFit();
+    setZoomMenuOpen(false);
+  }, []);
+
+  const handleZoomWheel = useCallback((e: React.WheelEvent) => {
+    const ed = dotsEditorRef.current;
+    if (!ed) return;
+    // Same multiplicative feel as wheel-zoom on the canvas.
+    ed.setZoom(ed.getZoom() * Math.exp(-e.deltaY * 0.0015));
+  }, []);
+
+  const zoomPresets = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
   useEffect(() => {
     if (isDragging) {
@@ -332,7 +355,47 @@ export function DotsPlayground() {
           />
           {/* Status bar */}
           <div className="flex-shrink-0 px-4 py-1.5 border-t border-[--color-border] bg-[--color-surface] flex items-center justify-between text-xs text-[--color-text-muted]">
-            <span>Preview</span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setZoomMenuOpen((o) => !o)}
+                onWheel={handleZoomWheel}
+                title="Zoom — click to choose, scroll to adjust"
+                className="tabular-nums cursor-pointer hover:text-[--color-text-secondary] transition-colors"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              {zoomMenuOpen && (
+                <>
+                  {/* Backdrop closes the menu on outside click */}
+                  <div className="fixed inset-0 z-10" onClick={() => setZoomMenuOpen(false)} />
+                  <div className="absolute bottom-full left-0 mb-1 z-20 min-w-[88px] py-1 rounded-md border border-[--color-border] bg-[--color-surface] shadow-lg">
+                    {zoomPresets.map((z) => (
+                      <button
+                        key={z}
+                        type="button"
+                        onClick={() => applyZoom(z)}
+                        className={`block w-full text-left px-3 py-1 tabular-nums hover:bg-[--color-background] transition-colors ${
+                          Math.round(zoom * 100) === Math.round(z * 100)
+                            ? 'text-[--color-accent]'
+                            : 'text-[--color-text-secondary]'
+                        }`}
+                      >
+                        {Math.round(z * 100)}%
+                      </button>
+                    ))}
+                    <div className="my-1 border-t border-[--color-border]" />
+                    <button
+                      type="button"
+                      onClick={zoomToFit}
+                      className="block w-full text-left px-3 py-1 text-[--color-text-secondary] hover:bg-[--color-background] transition-colors"
+                    >
+                      Fit
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
             <span>DOTS Graph</span>
           </div>
         </div>
