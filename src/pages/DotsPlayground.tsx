@@ -4,10 +4,9 @@ import Editor from 'react-simple-code-editor';
 import { highlightDotsCode } from '../components/DotsHighlighter';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
-import '@adjointlabs/dots-editor/style.css';
 
-// Dynamically import ELK and DotsEditor
-type DotsEditorType = import('@adjointlabs/dots-editor').DotsEditor;
+// Dynamically import the standalone graph-editor
+type DotsEditorType = import('@adjointlabs/graph-editor/standalone').DotsEditor;
 
 const defaultCode = `graph nested_example {
   // A loop-like box with inner structure
@@ -40,7 +39,6 @@ export function DotsPlayground() {
   const [splitPercent, setSplitPercent] = useState(33);
   const [isDragging, setIsDragging] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [elkLoaded, setElkLoaded] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
@@ -54,18 +52,10 @@ export function DotsPlayground() {
 
   const lineCount = code.split('\n').length;
 
-  // Load ELK first
+  // Initialize the DOTS editor (reinitialize on theme change).
+  // graph-editor/standalone bundles ELK itself, so no global setup is needed.
   useEffect(() => {
-    import('elkjs/lib/elk.bundled.js').then((ELK) => {
-      // Set ELK as global for dots-editor
-      (window as any).ELK = ELK.default || ELK;
-      setElkLoaded(true);
-    });
-  }, []);
-
-  // Initialize DOTS editor after ELK is loaded (reinitialize on theme change)
-  useEffect(() => {
-    if (!elkLoaded || !diagramRef.current) return;
+    if (!diagramRef.current) return;
 
     // Dispose previous editor on theme change
     if (dotsEditorRef.current) {
@@ -73,7 +63,7 @@ export function DotsPlayground() {
       dotsEditorRef.current = null;
     }
 
-    import('@adjointlabs/dots-editor').then(({ DotsEditor }) => {
+    import('@adjointlabs/graph-editor/standalone').then(({ DotsEditor }) => {
       dotsEditorRef.current = new DotsEditor(diagramRef.current!, {
         onChange: (newDots) => {
           // When diagram changes, update the code editor
@@ -94,7 +84,7 @@ export function DotsPlayground() {
       dotsEditorRef.current?.dispose();
       dotsEditorRef.current = null;
     };
-  }, [elkLoaded, theme]);
+  }, [theme]);
 
   // Update diagram when code changes (with debounce)
   useEffect(() => {
