@@ -200,6 +200,31 @@ export function DotsPlayground() {
 
   const zoomPresets = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
+  const handleUndo = useCallback(() => dotsEditorRef.current?.undo(), []);
+  const handleRedo = useCallback(() => dotsEditorRef.current?.redo(), []);
+
+  // Keyboard zoom: Cmd/Ctrl +/-/0 (in/out/fit). The canvas itself already
+  // handles undo/redo (Cmd/Ctrl+Z, +Shift/Y), delete and escape when focused.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const ed = dotsEditorRef.current;
+      if (!ed) return;
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        ed.setZoom(ed.getZoom() * 1.2);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        ed.setZoom(ed.getZoom() / 1.2);
+      } else if (e.key === '0') {
+        e.preventDefault();
+        ed.zoomToFit();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
@@ -309,19 +334,47 @@ export function DotsPlayground() {
         >
           <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center justify-between h-10">
             <span className="text-sm font-medium text-[--color-text-secondary]">Diagram</span>
-            {parseError ? (
-              <span className="text-xs text-red-500 truncate max-w-[240px]" title={parseError}>
-                {parseError}
-              </span>
-            ) : diagnostics.length > 0 ? (
-              <span
-                className="text-xs text-amber-500 truncate max-w-[240px]"
-                title={diagnostics.join('\n')}
-              >
-                ⚠ {diagnostics[0]}
-                {diagnostics.length > 1 ? ` (+${diagnostics.length - 1} more)` : ''}
-              </span>
-            ) : null}
+            <div className="flex items-center gap-3 min-w-0">
+              {parseError ? (
+                <span className="text-xs text-red-500 truncate max-w-[200px]" title={parseError}>
+                  {parseError}
+                </span>
+              ) : diagnostics.length > 0 ? (
+                <span
+                  className="text-xs text-amber-500 truncate max-w-[200px]"
+                  title={diagnostics.join('\n')}
+                >
+                  ⚠ {diagnostics[0]}
+                  {diagnostics.length > 1 ? ` (+${diagnostics.length - 1} more)` : ''}
+                </span>
+              ) : null}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  title="Undo (Ctrl/Cmd+Z)"
+                  aria-label="Undo"
+                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 14L4 9l5-5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 9h11a5 5 0 0 1 0 10h-1" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  title="Redo (Ctrl/Cmd+Shift+Z)"
+                  aria-label="Redo"
+                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 14l5-5-5-5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 9H9a5 5 0 0 0 0 10h1" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
           <div 
             ref={diagramRef}
