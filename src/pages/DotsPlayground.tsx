@@ -84,6 +84,9 @@ export function DotsPlayground() {
   const diagramRef = useRef<HTMLDivElement>(null);
   const dotsEditorRef = useRef<DotsEditorType | null>(null);
   const codeRef = useRef(code); // Keep latest code for theme changes
+  // Last DOTS text the editor itself emitted via onChange. Used to skip the
+  // self-echo reload below (the editor already holds this text).
+  const lastEmittedRef = useRef<string | null>(null);
 
   // Track code for reinitialization
   useEffect(() => {
@@ -107,7 +110,9 @@ export function DotsPlayground() {
       dotsEditorRef.current = new DotsEditor(diagramRef.current!, {
         theme: buildDiagramTheme(),
         onChange: (newDots) => {
-          // When diagram changes, update the code editor
+          // When diagram changes, update the code editor. Record it so the
+          // reload effect below doesn't feed the editor's own output back in.
+          lastEmittedRef.current = newDots;
           setCode(newDots);
         }
       });
@@ -130,10 +135,19 @@ export function DotsPlayground() {
   // Update diagram when code changes (with debounce)
   useEffect(() => {
     if (!dotsEditorRef.current) return;
+    // Skip reloads for text the editor itself emitted (self-echo): the
+    // standalone editor already holds it. Reloading would re-parse and reset
+    // model ids, desyncing in-flight drags (setPos on a stale id throws
+    // "element cannot carry attributes"). Only user edits in the code pane
+    // (where code differs from the last emitted text) should reload.
+    if (code === lastEmittedRef.current) return;
 
     const timeout = setTimeout(() => {
       try {
-        dotsEditorRef.current?.loadFromDots(code);
+        // Incremental, echo-detected update (extension-style): keeps node ids,
+        // selection and on-canvas positions across code-pane edits, unlike
+        // loadFromDots which fully resets the model.
+        dotsEditorRef.current?.applyExternalText(code);
         setParseError(null);
       } catch (e) {
         setParseError((e as Error).message);
