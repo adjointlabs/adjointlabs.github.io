@@ -29,7 +29,9 @@ function buildDiagramTheme(): DiagramTheme {
     boxBorderSelected: accent,
     boxFill: surface,
     boxFillSelected: accent + '22',
-    clusterBorder: border,
+    // Softened muted: visible on the selected fill, but not as stark as the
+    // solid muted, which "sticks out" against the light solid box borders.
+    clusterBorder: muted + '99',
     clusterFill: 'transparent',
     headerText: primary,
     typeText: muted,
