@@ -186,10 +186,12 @@ body {
 }
 
 /* Replace the browser's default focus ring on the dialog input with the site
-   accent (outline/box-shadow aren't set inline, so no !important needed). */
+   accent. graph-editor 0.1.5 ships the input border via a zero-specificity
+   :where() rule, so border-color is now host-overridable here. */
 .ge-dialog-input:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
 
