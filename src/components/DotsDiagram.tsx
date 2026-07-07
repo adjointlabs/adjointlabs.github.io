@@ -14,9 +14,11 @@ interface DotsDiagramProps {
    * Use `--color-surface` to blend into a card. */
   bgVar?: string;
   className?: string;
+  /** Allow pan/zoom/drag/context-menu. Defaults to false: a static render. */
+  interactive?: boolean;
 }
 
-export function DotsDiagram({ code, bgVar, className }: DotsDiagramProps) {
+export function DotsDiagram({ code, bgVar, className, interactive = false }: DotsDiagramProps) {
   const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<DotsEditorType | null>(null);
@@ -47,5 +49,13 @@ export function DotsDiagram({ code, bgVar, className }: DotsDiagramProps) {
     };
   }, [theme, code, bgVar]);
 
-  return <div ref={containerRef} className={className} />;
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      // A static render blocks pointer interaction (drag/zoom/context menu);
+      // the diagram still renders and auto-fits.
+      style={interactive ? undefined : { pointerEvents: 'none' }}
+    />
+  );
 }
