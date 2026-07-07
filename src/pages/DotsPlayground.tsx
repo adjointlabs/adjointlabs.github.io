@@ -9,6 +9,37 @@ import { buildDiagramTheme } from '../components/diagramTheme';
 // Dynamically import the standalone graph-editor
 type DotsEditorType = import('@adjointlabs/graph-editor/standalone').DotsEditor;
 
+const OPEN: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
+const CLOSE: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
+
+// Given the caret offset, return the offsets of the bracket adjacent to the
+// caret (on either side) and its matching partner, or null if there is none.
+function findBracketMatch(text: string, caret: number): [number, number] | null {
+  for (const idx of [caret - 1, caret]) {
+    const ch = text[idx];
+    if (ch === undefined) continue;
+    if (OPEN[ch]) {
+      const close = OPEN[ch];
+      let depth = 0;
+      for (let i = idx; i < text.length; i++) {
+        if (text[i] === ch) depth++;
+        else if (text[i] === close && --depth === 0) return [idx, i];
+      }
+      return null;
+    }
+    if (CLOSE[ch]) {
+      const open = CLOSE[ch];
+      let depth = 0;
+      for (let i = idx; i >= 0; i--) {
+        if (text[i] === ch) depth++;
+        else if (text[i] === open && --depth === 0) return [i, idx];
+      }
+      return null;
+    }
+  }
+  return null;
+}
+
 const defaultCode = `// A guarded LLM pipeline. The model's reasoning is a nested
 // graph with its own boundary ports (in/out), wired through
 // its internal steps; a safety classifier screens the output.
@@ -59,6 +90,7 @@ export function DotsPlayground() {
   const { theme } = useTheme();
   const [code, setCode] = useState(defaultCode);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+  const [matchPair, setMatchPair] = useState<[number, number] | null>(null);
   const [splitPercent, setSplitPercent] = useState(33);
   const [isDragging, setIsDragging] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -161,6 +193,11 @@ export function DotsPlayground() {
       const textBefore = code.substring(0, pos);
       const lines = textBefore.split('\n');
       setCursorPos({ line: lines.length, col: lines[lines.length - 1].length + 1 });
+      setMatchPair(
+        textarea.selectionStart === textarea.selectionEnd
+          ? findBracketMatch(code, pos)
+          : null,
+      );
     }
   }, [code]);
 
@@ -299,7 +336,7 @@ export function DotsPlayground() {
                   setCode(newCode);
                   setTimeout(updateCursorPosition, 0);
                 }}
-                highlight={highlightDotsCode}
+                highlight={(c) => highlightDotsCode(c, matchPair)}
                 padding={16}
                 style={{
                   fontFamily: '"Source Code Pro", monospace',

@@ -86,6 +86,13 @@ body {
   background: transparent;
 }
 
+/* Bracket matching (emphasize the bracket under the cursor and its partner) */
+.bracket-match {
+  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+
 /* ============================================
    DOTS Editor Theme Overrides
    Map website theme variables to graph-editor

@@ -10,11 +10,15 @@ function escapeHtml(text: string): string {
 }
 
 // Returns HTML string for use with react-simple-code-editor
-// Handles block comments across lines
-export function highlightDotsCode(code: string): string {
+// Handles block comments across lines.
+// `matchPair`, if given, is a pair of character offsets of two matching
+// brackets to emphasize (bracket matching under the cursor).
+export function highlightDotsCode(code: string, matchPair?: readonly [number, number] | null): string {
   let result = '';
   let remaining = code;
   let inBlockComment = false;
+  const isMatch = (offset: number) =>
+    !!matchPair && (offset === matchPair[0] || offset === matchPair[1]);
 
   while (remaining.length > 0) {
     // Block comment end (if inside block comment)
@@ -154,7 +158,13 @@ export function highlightDotsCode(code: string): string {
     }
 
     // Default: single character (including newlines)
-    result += escapeHtml(remaining[0]);
+    {
+      const offset = code.length - remaining.length;
+      const ch = escapeHtml(remaining[0]);
+      result += isMatch(offset)
+        ? `<span class="bracket-match">${ch}</span>`
+        : ch;
+    }
     remaining = remaining.slice(1);
   }
 
