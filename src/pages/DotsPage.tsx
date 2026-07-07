@@ -92,7 +92,7 @@ export function DotsPage() {
     Alice.out -> Bob.in :: knows
 }`} />
                   </div>
-                  <div className="bg-[--color-surface] border border-[--color-border] rounded-lg overflow-hidden min-h-[240px] h-[240px]">
+                  <div className="bg-[--color-surface] border border-[--color-border] rounded-lg overflow-hidden h-full">
                     {/* Rendered with the real graph-editor. The canvas background
                         is set to the card's surface color so it blends in. */}
                     <DotsDiagram
