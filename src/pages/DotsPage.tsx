@@ -119,7 +119,7 @@ export function DotsPage() {
                 <pre className="bg-[--color-surface] border border-[--color-border] rounded-lg p-4 overflow-x-auto">
                   <code className="text-sm font-mono text-[--color-text-primary]">{`graph      : 'graph' [ ID ] [ type_ann ] [ attr_list ] block
 block      : '{' ( stmt [ ';' ] )* '}'
-stmt       : node_stmt | edge_stmt | assignment | graph
+stmt       : node_stmt | edge_stmt | assignment | graph | port_stmt
 
 node_stmt  : ID [ type_ann ] [ attr_list ] [ node_body ]
 node_body  : '{' ( member [ ';' ] )* '}'
@@ -130,7 +130,9 @@ placement  : 'left' | 'right' | 'top' | 'bottom'
 
 edge_stmt  : edge_end ( edgeop edge_end [ type_ann ] )+ [ attr_list ]
 edgeop     : '->' | '--'
-edge_end   : ID ( '.' ID )+
+edge_end   : ID ( '.' ID )*        // bare ID: a boundary port of the enclosing graph;
+                                   //   qualified: a node's port, or a boundary port
+                                   //   (terminal on a graph)
 type_ann   : '::' ID
 
 attr_list  : ( '[' [ a_list ] ']' )+
@@ -147,7 +149,7 @@ assignment : ID '=' ID`}</code>
               <ul className="space-y-2 text-[--color-text-secondary]">
                 <li><strong className="text-[--color-text-primary]">Bare name:</strong> <code className="bg-[--color-surface] px-1 rounded">[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*</code> (no leading digit).</li>
                 <li><strong className="text-[--color-text-primary]">Numeral:</strong> <code className="bg-[--color-surface] px-1 rounded">[-]?(.[0-9]+ | [0-9]+(.[0-9]*)?)</code>.</li>
-                <li><strong className="text-[--color-text-primary]">Quoted string:</strong> <code className="bg-[--color-surface] px-1 rounded">"..."</code> supports <code className="bg-[--color-surface] px-1 rounded">\"</code> escaping; concatenate with <code className="bg-[--color-surface] px-1 rounded">+</code>.</li>
+                <li><strong className="text-[--color-text-primary]">Quoted string:</strong> <code className="bg-[--color-surface] px-1 rounded">"..."</code> supports <code className="bg-[--color-surface] px-1 rounded">\"</code> escaping and <code className="bg-[--color-surface] px-1 rounded">\</code>-continued newlines; concatenate with <code className="bg-[--color-surface] px-1 rounded">+</code>.</li>
                 <li><strong className="text-[--color-text-primary]">HTML string:</strong> <code className="bg-[--color-surface] px-1 rounded">&lt;...&gt;</code>. Angle brackets must be balanced; content must be valid XML.</li>
               </ul>
             </section>
@@ -201,7 +203,7 @@ assignment : ID '=' ID`}</code>
 
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Ports</h4>
               <p className="text-[--color-text-secondary] mb-4">
-                A port is the named attachment point on a node where an edge connects. Ports are mandatory on both ends of every edge, so an unqualified node reference is not a valid edge endpoint.
+                A port is a named attachment point where an edge connects — on a node, or on a graph's boundary (see Graph Boundary Ports below). Ports are mandatory on both ends of every edge, so an unqualified node reference is not a valid edge endpoint.
               </p>
               <p className="text-[--color-text-secondary] mb-4">
                 A port may optionally be declared inside a node body, which allows it to carry a type and/or attributes. The optional placement marker (<code className="bg-[--color-surface] px-1 rounded">left</code>, <code className="bg-[--color-surface] px-1 rounded">right</code>, <code className="bg-[--color-surface] px-1 rounded">top</code>, <code className="bg-[--color-surface] px-1 rounded">bottom</code>, or corners) is advisory. Declaration is never required — a port referenced in an edge but never declared is implicitly created, untyped (<code className="bg-[--color-surface] px-1 rounded">:: any</code>) and unplaced.
@@ -213,6 +215,25 @@ assignment : ID '=' ID`}</code>
     port topleft config [label="configuration"]
 }`} />
               </div>
+
+              <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Graph Boundary Ports</h4>
+              <p className="text-[--color-text-secondary] mb-4">
+                A graph body may also declare ports, with the same syntax, at any nesting level (the root graph included). A graph port is a named anchor on the graph's border and a scope junction: edges may attach to it both from inside the graph's body and from any ancestor scope, and the anchor joins them. An edge in the graph's own body names it by its bare port name; an edge in an ancestor scope qualifies it with a path to the graph.
+              </p>
+              <div className="mb-4">
+                <DotsHighlighter code={`graph outer {
+    A :: T
+    graph mid :: Sub {
+        port q                 // a boundary anchor on mid
+        B :: T
+        B.out -> q             // inside: the bare name is mid's boundary port
+    }
+    A.out -> mid.q             // outside: a qualified path reaches the same anchor
+}`} />
+              </div>
+              <p className="text-[--color-text-secondary] mb-4">
+                Graph ports differ from node ports in one way: they are never created implicitly — a graph port exists only when declared, so a mistyped endpoint is a resolution error, not a new anchor. The language ascribes no direction or flow to a junction; any such meaning is left to the schema.
+              </p>
 
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Nested Graphs</h4>
               <p className="text-[--color-text-secondary] mb-4">
@@ -235,13 +256,13 @@ assignment : ID '=' ID`}</code>
 
               <h4 className="text-xl font-semibold text-[--color-text-primary] mt-6 mb-3">Path Resolution</h4>
               <p className="text-[--color-text-secondary] mb-4">
-                An <code className="bg-[--color-surface] px-1 rounded">edge_end</code> is a dotted sequence of at least two IDs. The first ID must name a node in the current scope. Each subsequent ID except the last must name a nested graph or node along the nesting path. The final ID is always the port name.
+                An <code className="bg-[--color-surface] px-1 rounded">edge_end</code> is either a bare name or a dotted path. A bare name (a single ID, no <code className="bg-[--color-surface] px-1 rounded">.</code>) refers to a boundary port of the graph whose body directly contains the edge. A dotted path is a sequence of at least two IDs: the first names a node <em>or a nested graph</em> in the current scope, each middle segment names a nested graph or node along the nesting path, and the final ID is the port name — a port on the terminal node, or, when the second-to-last segment named a graph, a boundary port of that graph.
               </p>
               <p className="text-[--color-text-secondary] mb-4">
-                For example, <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code> resolves as: node <code className="bg-[--color-surface] px-1 rounded">Alice</code> → graph <code className="bg-[--color-surface] px-1 rounded">team</code> inside Alice → node <code className="bg-[--color-surface] px-1 rounded">Bob</code> inside team → port <code className="bg-[--color-surface] px-1 rounded">out</code> on Bob.
+                For example, <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code> resolves as: node <code className="bg-[--color-surface] px-1 rounded">Alice</code> → graph <code className="bg-[--color-surface] px-1 rounded">team</code> inside Alice → node <code className="bg-[--color-surface] px-1 rounded">Bob</code> inside team → port <code className="bg-[--color-surface] px-1 rounded">out</code> on Bob, while <code className="bg-[--color-surface] px-1 rounded">Alice.team.q</code> resolves to boundary port <code className="bg-[--color-surface] px-1 rounded">q</code> on graph <code className="bg-[--color-surface] px-1 rounded">team</code>.
               </p>
               <p className="text-[--color-text-secondary]">
-                Edges in an outer graph may target nodes inside any nested graph recursively: <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out {`->`} Dave.in :: reports</code>
+                Edges in an outer graph may target ports anywhere in the nesting, recursively: <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out {`->`} Dave.in :: reports</code>. A node's port always resolves (an undeclared name is created implicitly), but a boundary port resolves only when declared — an unresolved bare name or graph-terminal path is an error, never a new anchor.
               </p>
             </section>
 
@@ -324,8 +345,9 @@ assignment : ID '=' ID`}</code>
                 <li><strong className="text-[--color-text-primary]">. is the universal path delimiter:</strong> Serves as both nesting separator and port accessor; the final segment is always the port: <code className="bg-[--color-surface] px-1 rounded">Alice.team.Bob.out</code>.</li>
                 <li><strong className="text-[--color-text-primary]">Ports require a name; compass directions removed:</strong> Edges attach to a named port only — DOT's compass point syntax does not exist in DOTS.</li>
                 <li><strong className="text-[--color-text-primary]">Ports may optionally be declared:</strong> A port referenced in an edge but never declared is implicitly created, untyped and unplaced. The optional placement marker (<code className="bg-[--color-surface] px-1 rounded">left</code>, <code className="bg-[--color-surface] px-1 rounded">right</code>, etc.) is advisory only.</li>
-                <li><strong className="text-[--color-text-primary]">Ports are mandatory on both ends:</strong> <code className="bg-[--color-surface] px-1 rounded">Alice {`->`} Bob</code> is not valid; both endpoints must qualify a port.</li>
-                <li><strong className="text-[--color-text-primary]">Graphs cannot be edge endpoints:</strong> Edges must begin and end at a named port on a specific node.</li>
+                <li><strong className="text-[--color-text-primary]">Ports are mandatory on both ends:</strong> Every endpoint names a port — a bare name (the enclosing graph's own boundary port) or a qualified <code className="bg-[--color-surface] px-1 rounded">owner.port</code>. <code className="bg-[--color-surface] px-1 rounded">Alice.out {`->`} Bob.in</code> connects two nodes; <code className="bg-[--color-surface] px-1 rounded">Alice {`->`} Bob</code> does not (bare names are boundary ports, not the nodes).</li>
+                <li><strong className="text-[--color-text-primary]">Graphs may declare boundary ports:</strong> A graph body, at any nesting level (the root included), may contain <code className="bg-[--color-surface] px-1 rounded">port</code> declarations like a node body. Unlike node ports, boundary ports are never created implicitly.</li>
+                <li><strong className="text-[--color-text-primary]">Graph boundary ports are scope junctions:</strong> A boundary port may be an edge endpoint from either side of its graph's boundary — by bare name inside the graph's body, or by a qualified path (<code className="bg-[--color-surface] px-1 rounded">mid.q</code>) from an ancestor scope. The graph itself, unqualified, is still never an endpoint.</li>
               </ul>
             </section>
             </div>
