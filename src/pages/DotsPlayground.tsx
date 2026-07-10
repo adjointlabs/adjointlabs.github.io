@@ -86,6 +86,37 @@ graph safety {
   Guard.approved -> Response.text :: safe
 }`;
 
+// Split an attribute list's inner text on top-level commas, keeping commas
+// that sit inside quoted values (e.g. pos="100,200") together.
+function splitAttrEntries(inner: string): string[] {
+  const out: string[] = [];
+  let buf = '';
+  let inStr = false;
+  for (let i = 0; i < inner.length; i++) {
+    const c = inner[i];
+    if (c === '"' && inner[i - 1] !== '\\') inStr = !inStr;
+    if (c === ',' && !inStr) {
+      out.push(buf);
+      buf = '';
+    } else {
+      buf += c;
+    }
+  }
+  out.push(buf);
+  return out;
+}
+
+// Remove every `pos=...` attribute from the source so the layout engine
+// re-arranges the boxes. Attribute lists left empty are dropped entirely.
+function stripPositions(src: string): string {
+  return src.replace(/[ \t]*\[([^\]]*)\]/g, (_whole, inner: string) => {
+    const kept = splitAttrEntries(inner)
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0 && !/^pos\s*=/i.test(e));
+    return kept.length > 0 ? ` [${kept.join(', ')}]` : '';
+  });
+}
+
 export function DotsPlayground() {
   const { theme } = useTheme();
   const [code, setCode] = useState(defaultCode);
@@ -240,6 +271,28 @@ export function DotsPlayground() {
   const handleUndo = useCallback(() => dotsEditorRef.current?.undo(), []);
   const handleRedo = useCallback(() => dotsEditorRef.current?.redo(), []);
 
+  // Clear all `pos` attributes so the layout engine re-arranges every box.
+  const handleAutoArrange = useCallback(() => {
+    const cleaned = stripPositions(codeRef.current);
+    const ed = dotsEditorRef.current;
+    if (cleaned === codeRef.current) {
+      ed?.zoomToFit();
+      return;
+    }
+    // Skip the code-change reload echo; we apply the fresh layout directly.
+    lastEmittedRef.current = cleaned;
+    setCode(cleaned);
+    if (!ed) return;
+    try {
+      // Full reset so every box is re-laid out; fit once the async layout lands.
+      ed.loadFromDots(cleaned, { fit: true });
+      setParseError(null);
+      refreshDiagnostics();
+    } catch (e) {
+      setParseError((e as Error).message);
+    }
+  }, [refreshDiagnostics]);
+
   // Keyboard zoom: Cmd/Ctrl +/-/0 (in/out/fit). The canvas itself already
   // handles undo/redo (Cmd/Ctrl+Z, +Shift/Y), delete and escape when focused.
   useEffect(() => {
@@ -386,6 +439,21 @@ export function DotsPlayground() {
                 </span>
               ) : null}
               <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleAutoArrange}
+                  title="Auto-arrange (clear all positions)"
+                  aria-label="Auto-arrange"
+                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+                    <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+                    <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+                    <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+                  </svg>
+                </button>
+                <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
                 <button
                   type="button"
                   onClick={handleUndo}
