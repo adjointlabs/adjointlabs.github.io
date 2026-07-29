@@ -107,6 +107,9 @@ function themeFromPalette(p: DiagramPalette): DiagramTheme {
     derivedWire: muted,
     error: '#dc2626',
     staleOverlay: background + '99',
+    // Background snap-grid dots: a subtle tone off the canvas background, well
+    // below the box border so the lattice never competes with content.
+    grid: mix(background, toward, isDark ? 0.16 : 0.12),
     // Match the website's code font (Source Code Pro) on the diagram canvas.
     fontFamily: '"Source Code Pro", ui-monospace, monospace',
   };
