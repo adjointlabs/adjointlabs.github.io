@@ -33,12 +33,47 @@ function mix(a: string, b: string, t: number): string {
 export function buildDiagramTheme(bgVar: string = '--color-background'): DiagramTheme {
   const s = getComputedStyle(document.documentElement);
   const v = (name: string, fallback: string) => s.getPropertyValue(name).trim() || fallback;
-  const primary = v('--color-text-primary', '#0f172a');
-  const secondary = v('--color-text-secondary', '#475569');
-  const muted = v('--color-text-muted', '#94a3b8');
-  const accent = v('--color-accent', '#3b82f6');
-  const background = v(bgVar, '#fafafa');
-  const isDark = document.documentElement.classList.contains('dark');
+  return themeFromPalette({
+    primary: v('--color-text-primary', '#0f172a'),
+    secondary: v('--color-text-secondary', '#475569'),
+    muted: v('--color-text-muted', '#94a3b8'),
+    accent: v('--color-accent', '#3b82f6'),
+    background: v(bgVar, '#fafafa'),
+    isDark: document.documentElement.classList.contains('dark'),
+  });
+}
+
+/**
+ * Theme for SVG file export: ALWAYS the light palette (dark ink on an opaque
+ * light fill), independent of the site's current light/dark mode, so the file
+ * is legible wherever it's embedded. The page background is dropped at export
+ * time (`background: false`) for a transparent field — but this fill is opaque,
+ * so cluster (subgraph) interiors stay solid, never see-through.
+ */
+export function buildExportTheme(): DiagramTheme {
+  return themeFromPalette({
+    primary: '#0f172a',
+    secondary: '#475569',
+    muted: '#94a3b8',
+    accent: '#3b82f6',
+    background: '#fafafa',
+    isDark: false,
+  });
+}
+
+interface DiagramPalette {
+  primary: string;
+  secondary: string;
+  muted: string;
+  accent: string;
+  background: string;
+  isDark: boolean;
+}
+
+/** Derive the full canvas theme from a small base palette. Shared by the live
+ * (mode-following) theme and the always-light export theme. */
+function themeFromPalette(p: DiagramPalette): DiagramTheme {
+  const { primary, secondary, muted, accent, background, isDark } = p;
   // A node reads as "something is here" by contrasting with the canvas
   // background (which is empty "space"): lighter in dark, darker in light.
   // Deriving from the background (not the UI panel color) keeps the feel

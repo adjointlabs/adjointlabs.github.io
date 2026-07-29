@@ -4,7 +4,7 @@ import Editor from 'react-simple-code-editor';
 import { highlightDotsCode } from '../components/DotsHighlighter';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
-import { buildDiagramTheme } from '../components/diagramTheme';
+import { buildDiagramTheme, buildExportTheme } from '../components/diagramTheme';
 
 // Dynamically import the standalone graph-editor
 type DotsEditorType = import('@adjointlabs/graph-editor/standalone').DotsEditor;
@@ -271,6 +271,28 @@ export function DotsPlayground() {
   const handleUndo = useCallback(() => dotsEditorRef.current?.undo(), []);
   const handleRedo = useCallback(() => dotsEditorRef.current?.redo(), []);
 
+  // Download the current diagram as a standalone SVG. Feature-detected so the
+  // button degrades gracefully until the graph-editor dependency exposes
+  // exportSvg (published `graph-editor-v*` tag). The file always uses the light
+  // theme with a transparent page background, so it embeds legibly anywhere
+  // (cluster interiors stay opaque).
+  const handleDownloadSvg = useCallback(() => {
+    const ed = dotsEditorRef.current as unknown as {
+      exportSvg?: (opts?: { theme?: unknown; background?: boolean; margin?: number }) => string | null;
+    } | null;
+    const svg = ed?.exportSvg?.({ theme: buildExportTheme(), background: false });
+    if (!svg) return;
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagram.svg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, []);
+
   // Clear all `pos` attributes so the layout engine re-arranges every box.
   const handleAutoArrange = useCallback(() => {
     const cleaned = stripPositions(codeRef.current);
@@ -451,6 +473,19 @@ export function DotsPlayground() {
                     <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
                     <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
                     <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadSvg}
+                  title="Download as SVG"
+                  aria-label="Download SVG"
+                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 11l4 4 4-4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
                   </svg>
                 </button>
                 <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
