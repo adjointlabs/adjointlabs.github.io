@@ -134,6 +134,7 @@ export function DotsPlayground() {
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
+  const dragDepth = useRef(0);
   const dotsEditorRef = useRef<DotsEditorType | null>(null);
   const codeRef = useRef(code); // Keep latest code for theme changes
   // Grid on/off, held in a ref so it survives the editor re-init on theme change.
@@ -352,20 +353,33 @@ export function DotsPlayground() {
     URL.revokeObjectURL(url);
   }, []);
 
-  // Recover a diagram from an exported image dropped on the canvas: PNG/SVG
-  // exports embed the DOTS source as metadata, so dropping one restores it.
+  // Recover a diagram from an exported image dropped anywhere on the page:
+  // PNG/SVG exports embed the DOTS source as metadata, so dropping one restores
+  // it. A depth counter keeps the overlay steady as the cursor crosses the
+  // pane's nested children (dragenter/leave fire per element).
+  const isFileDrag = (e: React.DragEvent): boolean =>
+    Array.from(e.dataTransfer?.types ?? []).includes('Files');
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragOver(true);
+  }, []);
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    if (Array.from(e.dataTransfer?.types ?? []).includes('Files')) {
-      e.preventDefault();
-      setDragOver(true);
-    }
+    if (isFileDrag(e)) e.preventDefault();
   }, []);
   const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
     e.preventDefault();
-    setDragOver(false);
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) {
+      dragDepth.current = 0;
+      setDragOver(false);
+    }
   }, []);
   const handleImportDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
+    dragDepth.current = 0;
     setDragOver(false);
     const file = e.dataTransfer?.files?.[0];
     const ed = dotsEditorRef.current as unknown as {
@@ -470,8 +484,22 @@ export function DotsPlayground() {
         </div>
       </header>
 
-      {/* Main content */}
-      <div ref={containerRef} className="flex-1 flex min-h-0">
+      {/* Main content — drop an exported PNG/SVG anywhere here to recover it */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex min-h-0 relative"
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleImportDrop}
+      >
+        {dragOver && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center border-2 border-dashed border-[--color-accent] bg-[--color-accent]/10 pointer-events-none">
+            <span className="rounded-md bg-[--color-surface] px-4 py-2 text-sm font-medium text-[--color-accent] shadow-lg">
+              Drop an exported PNG or SVG to load its diagram
+            </span>
+          </div>
+        )}
         {/* Editor panel */}
         <div 
           className="flex flex-col"
@@ -672,24 +700,10 @@ export function DotsPlayground() {
             </div>
           </div>
           <div
-            className="flex-1 relative"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleImportDrop}
-          >
-            <div
-              ref={diagramRef}
-              className="absolute inset-0"
-              style={{ backgroundColor: 'var(--vscode-panel-background)' }}
-            />
-            {dragOver && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-[--color-accent] bg-[--color-accent]/5 pointer-events-none">
-                <span className="rounded bg-[--color-surface] px-3 py-1.5 text-sm font-medium text-[--color-accent] shadow">
-                  Drop an exported PNG or SVG to load its diagram
-                </span>
-              </div>
-            )}
-          </div>
+            ref={diagramRef}
+            className="flex-1"
+            style={{ backgroundColor: 'var(--vscode-panel-background)' }}
+          />
           {/* Status bar */}
           <div className="flex-shrink-0 px-4 py-1.5 border-t border-[--color-border] bg-[--color-surface] flex items-center justify-between text-xs text-[--color-text-muted]">
             <div className="relative">
