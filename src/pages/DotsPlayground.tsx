@@ -510,7 +510,6 @@ export function DotsPlayground() {
                     <path strokeLinecap="round" d="M9 4v16M15 4v16M4 9h16M4 15h16" />
                   </svg>
                 </button>
-                <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
                 <button
                   type="button"
                   onClick={handleAutoArrange}
@@ -525,6 +524,7 @@ export function DotsPlayground() {
                     <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
                   </svg>
                 </button>
+                <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
                 <button
                   type="button"
                   onClick={handleDownloadSvg}
