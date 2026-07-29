@@ -323,7 +323,7 @@ export function DotsPlayground() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'diagram.tex';
+    a.download = 'diagram.tikz';
     document.body.appendChild(a);
     a.click();
     a.remove();
