@@ -129,6 +129,7 @@ export function DotsPlayground() {
   const [zoom, setZoom] = useState(1);
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [gridOn, setGridOn] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -350,6 +351,43 @@ export function DotsPlayground() {
     a.remove();
     URL.revokeObjectURL(url);
   }, []);
+
+  // Recover a diagram from an exported image dropped on the canvas: PNG/SVG
+  // exports embed the DOTS source as metadata, so dropping one restores it.
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (Array.from(e.dataTransfer?.types ?? []).includes('Files')) {
+      e.preventDefault();
+      setDragOver(true);
+    }
+  }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
+  const handleImportDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    const ed = dotsEditorRef.current as unknown as {
+      importImageFile?: (f: File) => Promise<boolean>;
+      toDots?: () => string;
+    } | null;
+    if (!file || !ed?.importImageFile) return;
+    try {
+      const ok = await ed.importImageFile(file);
+      if (!ok) {
+        setParseError('That image has no embedded DOTS (only diagrams exported from here carry it).');
+        return;
+      }
+      const dots = ed.toDots?.() ?? '';
+      lastEmittedRef.current = dots;
+      setCode(dots);
+      setParseError(null);
+      refreshDiagnostics();
+    } catch (err) {
+      setParseError((err as Error).message);
+    }
+  }, [refreshDiagnostics]);
 
   // Clear all `pos` attributes so the layout engine re-arranges every box.
   const handleAutoArrange = useCallback(() => {
@@ -633,11 +671,25 @@ export function DotsPlayground() {
               </div>
             </div>
           </div>
-          <div 
-            ref={diagramRef}
-            className="flex-1"
-            style={{ backgroundColor: 'var(--vscode-panel-background)' }}
-          />
+          <div
+            className="flex-1 relative"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleImportDrop}
+          >
+            <div
+              ref={diagramRef}
+              className="absolute inset-0"
+              style={{ backgroundColor: 'var(--vscode-panel-background)' }}
+            />
+            {dragOver && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-[--color-accent] bg-[--color-accent]/5 pointer-events-none">
+                <span className="rounded bg-[--color-surface] px-3 py-1.5 text-sm font-medium text-[--color-accent] shadow">
+                  Drop an exported PNG or SVG to load its diagram
+                </span>
+              </div>
+            )}
+          </div>
           {/* Status bar */}
           <div className="flex-shrink-0 px-4 py-1.5 border-t border-[--color-border] bg-[--color-surface] flex items-center justify-between text-xs text-[--color-text-muted]">
             <div className="relative">
