@@ -308,6 +308,28 @@ export function DotsPlayground() {
     URL.revokeObjectURL(url);
   }, []);
 
+  // Download the current diagram as a bare `tikzpicture` (`.tex`), meant to be
+  // \input into a LaTeX document (needs only \usepackage{tikz}). Feature-
+  // detected so the button degrades gracefully until the graph-editor
+  // dependency exposes exportTikz. Uses the light export theme with no
+  // full-bleed page rect, matching the SVG export.
+  const handleDownloadTikz = useCallback(() => {
+    const ed = dotsEditorRef.current as unknown as {
+      exportTikz?: (opts?: { theme?: unknown; background?: boolean; margin?: number }) => string | null;
+    } | null;
+    const tikz = ed?.exportTikz?.({ theme: buildExportTheme(), background: false });
+    if (!tikz) return;
+    const blob = new Blob([tikz], { type: 'application/x-tex' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagram.tex';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, []);
+
   // Clear all `pos` attributes so the layout engine re-arranges every box.
   const handleAutoArrange = useCallback(() => {
     const cleaned = stripPositions(codeRef.current);
@@ -514,6 +536,18 @@ export function DotsPlayground() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 11l4 4 4-4" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadTikz}
+                  title="Download as TikZ (LaTeX)"
+                  aria-label="Download TikZ"
+                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 4c-2 0-3 1-3 3v2c0 1-1 2-2 2 1 0 2 1 2 2v2c0 2 1 3 3 3" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 4c2 0 3 1 3 3v2c0 1 1 2 2 2-1 0-2 1-2 2v2c0 2-1 3-3 3" />
                   </svg>
                 </button>
                 <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
