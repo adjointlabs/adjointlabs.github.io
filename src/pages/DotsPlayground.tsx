@@ -128,11 +128,14 @@ export function DotsPlayground() {
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
   const [zoom, setZoom] = useState(1);
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
+  const [gridOn, setGridOn] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
   const dotsEditorRef = useRef<DotsEditorType | null>(null);
   const codeRef = useRef(code); // Keep latest code for theme changes
+  // Grid on/off, held in a ref so it survives the editor re-init on theme change.
+  const gridOnRef = useRef(false);
   // Last DOTS text the editor itself emitted via onChange. Used to skip the
   // self-echo reload below (the editor already holds this text).
   const lastEmittedRef = useRef<string | null>(null);
@@ -165,6 +168,7 @@ export function DotsPlayground() {
     import('@adjointlabs/graph-editor/standalone').then(({ DotsEditor }) => {
       dotsEditorRef.current = new DotsEditor(diagramRef.current!, {
         theme: buildDiagramTheme(),
+        grid: { enabled: gridOnRef.current },
         onViewportChange: (z) => setZoom(z),
         onChange: (newDots) => {
           // When diagram changes, update the code editor. Record it so the
@@ -270,6 +274,17 @@ export function DotsPlayground() {
 
   const handleUndo = useCallback(() => dotsEditorRef.current?.undo(), []);
   const handleRedo = useCallback(() => dotsEditorRef.current?.redo(), []);
+
+  // Toggle the snap grid (dots + center-snap on drag). Persist in a ref so a
+  // later theme-driven re-init keeps the current state.
+  const handleToggleGrid = useCallback(() => {
+    setGridOn((on) => {
+      const next = !on;
+      gridOnRef.current = next;
+      dotsEditorRef.current?.setGrid({ enabled: next });
+      return next;
+    });
+  }, []);
 
   // Download the current diagram as a standalone SVG. Feature-detected so the
   // button degrades gracefully until the graph-editor dependency exposes
@@ -461,6 +476,19 @@ export function DotsPlayground() {
                 </span>
               ) : null}
               <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleToggleGrid}
+                  title={gridOn ? 'Grid: on (snap to grid)' : 'Grid: off'}
+                  aria-label="Toggle grid"
+                  aria-pressed={gridOn}
+                  className={`p-1 rounded transition-colors ${gridOn ? 'text-[--color-accent] bg-[--color-background]' : 'text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background]'}`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" d="M9 4v16M15 4v16M4 9h16M4 15h16" />
+                  </svg>
+                </button>
+                <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
                 <button
                   type="button"
                   onClick={handleAutoArrange}
