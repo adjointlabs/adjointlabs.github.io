@@ -128,6 +128,7 @@ export function DotsPlayground() {
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
   const [zoom, setZoom] = useState(1);
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [gridOn, setGridOn] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -323,7 +324,27 @@ export function DotsPlayground() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'diagram.tikz';
+    a.download = 'diagram.tex';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  // Download the current diagram as a PNG raster. Feature-detected so the
+  // button degrades gracefully until the graph-editor dependency exposes
+  // exportPng. Uses the light export theme with a transparent page at 2x scale,
+  // matching the SVG export (cluster interiors stay opaque).
+  const handleDownloadPng = useCallback(async () => {
+    const ed = dotsEditorRef.current as unknown as {
+      exportPng?: (opts?: { theme?: unknown; background?: boolean; margin?: number; scale?: number }) => Promise<Blob | null>;
+    } | null;
+    const blob = await ed?.exportPng?.({ theme: buildExportTheme(), background: false, scale: 2 });
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagram.png';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -525,31 +546,65 @@ export function DotsPlayground() {
                   </svg>
                 </button>
                 <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
-                <button
-                  type="button"
-                  onClick={handleDownloadSvg}
-                  title="Download as SVG"
-                  aria-label="Download SVG"
-                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 11l4 4 4-4" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadTikz}
-                  title="Download as TikZ (LaTeX)"
-                  aria-label="Download TikZ"
-                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 4c-2 0-3 1-3 3v2c0 1-1 2-2 2 1 0 2 1 2 2v2c0 2 1 3 3 3" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 4c2 0 3 1 3 3v2c0 1 1 2 2 2-1 0-2 1-2 2v2c0 2-1 3-3 3" />
-                  </svg>
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setExportMenuOpen((o) => !o)}
+                    title="Export diagram"
+                    aria-label="Export diagram"
+                    aria-haspopup="menu"
+                    aria-expanded={exportMenuOpen}
+                    className={`p-1 rounded flex items-center gap-0.5 transition-colors ${exportMenuOpen ? 'text-[--color-accent] bg-[--color-background]' : 'text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background]'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 11l4 4 4-4" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
+                    </svg>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                  {exportMenuOpen && (
+                    <>
+                      {/* Backdrop closes the menu on outside click */}
+                      <div className="fixed inset-0 z-10" onClick={() => setExportMenuOpen(false)} />
+                      <div
+                        role="menu"
+                        className="absolute right-0 top-full mt-1 z-20 min-w-[168px] py-1 rounded-md border border-[--color-border] bg-[--color-surface] shadow-lg"
+                      >
+                        <div className="px-3 py-1 text-[10px] uppercase tracking-wide text-[--color-text-muted]">Download as</div>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => { setExportMenuOpen(false); handleDownloadSvg(); }}
+                          className="block w-full text-left px-3 py-1.5 text-[--color-text-secondary] hover:bg-[--color-background] hover:text-[--color-accent] transition-colors"
+                        >
+                          <span className="font-medium">SVG</span>
+                          <span className="text-[--color-text-muted]"> · vector</span>
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => { setExportMenuOpen(false); handleDownloadPng(); }}
+                          className="block w-full text-left px-3 py-1.5 text-[--color-text-secondary] hover:bg-[--color-background] hover:text-[--color-accent] transition-colors"
+                        >
+                          <span className="font-medium">PNG</span>
+                          <span className="text-[--color-text-muted]"> · image (2×)</span>
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => { setExportMenuOpen(false); handleDownloadTikz(); }}
+                          className="block w-full text-left px-3 py-1.5 text-[--color-text-secondary] hover:bg-[--color-background] hover:text-[--color-accent] transition-colors"
+                        >
+                          <span className="font-medium">TikZ</span>
+                          <span className="text-[--color-text-muted]"> · LaTeX</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
                 <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
                 <button
                   type="button"
