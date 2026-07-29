@@ -109,9 +109,9 @@ function themeFromPalette(p: DiagramPalette): DiagramTheme {
     staleOverlay: background + '99',
     // Background snap-grid dots: a subtle tone off the canvas background, well
     // below the box border so the lattice never competes with content. Light
-    // mode needs a stronger mix — a faint dark dot on a near-white canvas reads
-    // much weaker than a faint light dot on a dark canvas.
-    grid: mix(background, toward, isDark ? 0.16 : 0.24),
+    // mode needs a much stronger mix — a faint dark dot on a near-white canvas
+    // reads far weaker than a faint light dot on a dark canvas.
+    grid: mix(background, toward, isDark ? 0.16 : 0.4),
     // Match the website's code font (Source Code Pro) on the diagram canvas.
     fontFamily: '"Source Code Pro", ui-monospace, monospace',
   };
