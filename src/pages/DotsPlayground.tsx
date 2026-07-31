@@ -384,13 +384,23 @@ export function DotsPlayground() {
     const file = e.dataTransfer?.files?.[0];
     const ed = dotsEditorRef.current as unknown as {
       importImageFile?: (f: File) => Promise<boolean>;
+      importTikzFile?: (f: File) => Promise<boolean>;
       toDots?: () => string;
     } | null;
-    if (!file || !ed?.importImageFile) return;
+    if (!file || !ed) return;
+    const isTikz = /\.(tex|tikz)$/i.test(file.name) || /x-tex$/.test(file.type);
     try {
-      const ok = await ed.importImageFile(file);
+      const ok = isTikz && ed.importTikzFile
+        ? await ed.importTikzFile(file)
+        : ed.importImageFile
+          ? await ed.importImageFile(file)
+          : false;
       if (!ok) {
-        setParseError('That image has no embedded DOTS (only diagrams exported from here carry it).');
+        setParseError(
+          isTikz
+            ? 'That .tex is not a TikZ diagram exported from here.'
+            : 'That image has no embedded DOTS (only diagrams exported from here carry it).',
+        );
         return;
       }
       const dots = ed.toDots?.() ?? '';
@@ -496,7 +506,7 @@ export function DotsPlayground() {
         {dragOver && (
           <div className="absolute inset-0 z-30 flex items-center justify-center border-2 border-dashed border-[--color-accent] bg-[--color-accent]/10 pointer-events-none">
             <span className="rounded-md bg-[--color-surface] px-4 py-2 text-sm font-medium text-[--color-accent] shadow-lg">
-              Drop an exported PNG or SVG to load its diagram
+              Drop an exported PNG, SVG, or TikZ (.tex) to load its diagram
             </span>
           </div>
         )}
