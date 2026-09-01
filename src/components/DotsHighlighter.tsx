@@ -93,8 +93,8 @@ export function highlightDotsCode(code: string, matchPair?: readonly [number, nu
       continue;
     }
 
-    // Keywords
-    const keywordMatch = remaining.match(/^(graph|port)\b/);
+    // Keywords (only `port`; `graph` is no longer a keyword)
+    const keywordMatch = remaining.match(/^(port)\b/);
     if (keywordMatch) {
       result += `<span style="color: var(--syntax-keyword); font-weight: 500">${escapeHtml(keywordMatch[1])}</span>`;
       remaining = remaining.slice(keywordMatch[1].length);
@@ -256,8 +256,8 @@ export function DotsHighlighter({ code, bare = false }: DotsHighlighterProps) {
         continue;
       }
 
-      // Keywords
-      const keywordMatch = remaining.match(/^(graph|port)\b/);
+      // Keywords (only `port`; `graph` is no longer a keyword)
+      const keywordMatch = remaining.match(/^(port)\b/);
       if (keywordMatch) {
         tokens.push(<span key={key++} className="font-medium" style={{ color: 'var(--syntax-keyword)' }}>{keywordMatch[1]}</span>);
         remaining = remaining.slice(keywordMatch[1].length);

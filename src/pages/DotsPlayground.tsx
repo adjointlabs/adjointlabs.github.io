@@ -40,10 +40,10 @@ function findBracketMatch(text: string, caret: number): [number, number] | null 
   return null;
 }
 
-const defaultCode = `// A guarded LLM pipeline. The model's reasoning is a nested
-// graph with its own boundary ports (in/out), wired through
-// its internal steps; a safety classifier screens the output.
-graph safety {
+const defaultCode = `// A guarded LLM pipeline. The model is itself a graph: its
+// boundary ports (prompt/output) wire straight through its own
+// internal steps; a safety classifier screens the output.
+safety {
   Prompt :: Input {
     port right text
   }
@@ -52,23 +52,18 @@ graph safety {
     port left prompt
     port right output
 
-    graph reasoning :: ChainOfThought {
+    draft :: Step {
       port left in
       port right out
-
-      draft :: Step {
-        port left in
-        port right out
-      }
-      revise :: Step {
-        port left in
-        port right out
-      }
-
-      in -> draft.in
-      draft.out -> revise.in :: candidate
-      revise.out -> out
     }
+    revise :: Step {
+      port left in
+      port right out
+    }
+
+    prompt -> draft.in
+    draft.out -> revise.in :: candidate
+    revise.out -> output
   }
 
   Guard :: SafetyFilter {
