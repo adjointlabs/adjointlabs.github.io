@@ -101,6 +101,28 @@ function splitAttrEntries(inner: string): string[] {
   return out;
 }
 
+// Share links à la quiver: the DOTS source travels base64url-encoded in the
+// URL hash (#dots=...), so configurations can be shared as plain links with
+// no server involved.
+function encodeShareHash(code: string): string {
+  const bytes = new TextEncoder().encode(code);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decodeShareHash(hash: string): string | null {
+  const m = /^#dots=([A-Za-z0-9\-_]+)$/.exec(hash);
+  if (!m) return null;
+  try {
+    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
 // Remove every `pos=...` attribute from the source so the layout engine
 // re-arranges the boxes. Attribute lists left empty are dropped entirely.
 function stripPositions(src: string): string {
@@ -114,7 +136,8 @@ function stripPositions(src: string): string {
 
 export function DotsPlayground() {
   const { theme } = useTheme();
-  const [code, setCode] = useState(defaultCode);
+  // A #dots=... share link takes precedence over the default example.
+  const [code, setCode] = useState(() => decodeShareHash(window.location.hash) ?? defaultCode);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [matchPair, setMatchPair] = useState<[number, number] | null>(null);
   const [splitPercent, setSplitPercent] = useState(33);
@@ -126,6 +149,7 @@ export function DotsPlayground() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [gridOn, setGridOn] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
@@ -408,6 +432,22 @@ export function DotsPlayground() {
     }
   }, [refreshDiagnostics]);
 
+  // Put the current DOTS source in the URL hash and copy the link, so the
+  // exact playground configuration can be shared.
+  const handleShareLink = useCallback(async () => {
+    const hash = `#dots=${encodeShareHash(codeRef.current)}`;
+    window.history.replaceState(null, '', hash);
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}${window.location.pathname}${hash}`,
+      );
+    } catch {
+      // Clipboard unavailable — the address bar still holds the link.
+    }
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  }, []);
+
   // Clear all `pos` attributes so the layout engine re-arranges every box.
   const handleAutoArrange = useCallback(() => {
     const cleaned = stripPositions(codeRef.current);
@@ -617,6 +657,24 @@ export function DotsPlayground() {
                   </svg>
                 </button>
                 <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={handleShareLink}
+                  title={shareCopied ? 'Link copied!' : 'Copy share link (diagram encoded in URL)'}
+                  aria-label="Copy share link"
+                  className={`p-1 rounded transition-colors ${shareCopied ? 'text-[--color-accent] bg-[--color-background]' : 'text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background]'}`}
+                >
+                  {shareCopied ? (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 13.5a4 4 0 0 0 6 .4l3-3a4 4 0 0 0-5.7-5.7l-1.6 1.6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5a4 4 0 0 0-6-.4l-3 3a4 4 0 0 0 5.7 5.7l1.6-1.6" />
+                    </svg>
+                  )}
+                </button>
                 <div className="relative">
                   <button
                     type="button"
