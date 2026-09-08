@@ -101,23 +101,36 @@ function splitAttrEntries(inner: string): string[] {
   return out;
 }
 
-// Share links à la quiver: the DOTS source travels base64url-encoded in the
-// URL hash (#dots=...), so configurations can be shared as plain links with
-// no server involved.
-function encodeShareHash(code: string): string {
-  const bytes = new TextEncoder().encode(code);
+// Share links à la quiver: the DOTS source travels in the URL hash, so
+// configurations can be shared as plain links with no server involved.
+// #dotz= is deflate-compressed base64url (3-4x shorter); #dots= is plain
+// base64url, kept for old links and browsers without CompressionStream.
+function toBase64Url(bytes: Uint8Array): string {
   let bin = '';
   for (const b of bytes) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function decodeShareHash(hash: string): string | null {
-  const m = /^#dots=([A-Za-z0-9\-_]+)$/.exec(hash);
+function fromBase64Url(b64url: string): Uint8Array {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+}
+
+async function encodeShareHash(code: string): Promise<string> {
+  const bytes = new TextEncoder().encode(code);
+  if (typeof CompressionStream === 'undefined') return `#dots=${toBase64Url(bytes)}`;
+  const packed = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  return `#dotz=${toBase64Url(new Uint8Array(await new Response(packed).arrayBuffer()))}`;
+}
+
+async function decodeShareHash(hash: string): Promise<string | null> {
+  const m = /^#(dots|dotz)=([A-Za-z0-9\-_]+)$/.exec(hash);
   if (!m) return null;
   try {
-    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
+    const bytes = fromBase64Url(m[2]);
+    if (m[1] === 'dots') return new TextDecoder().decode(bytes);
+    const plain = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return await new Response(plain).text();
   } catch {
     return null;
   }
@@ -136,8 +149,7 @@ function stripPositions(src: string): string {
 
 export function DotsPlayground() {
   const { theme } = useTheme();
-  // A #dots=... share link takes precedence over the default example.
-  const [code, setCode] = useState(() => decodeShareHash(window.location.hash) ?? defaultCode);
+  const [code, setCode] = useState(defaultCode);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
   const [matchPair, setMatchPair] = useState<[number, number] | null>(null);
   const [splitPercent, setSplitPercent] = useState(33);
@@ -166,6 +178,18 @@ export function DotsPlayground() {
   useEffect(() => {
     codeRef.current = code;
   }, [code]);
+
+  // A share link in the URL hash takes precedence over the default example
+  // (async because #dotz= links decompress via DecompressionStream).
+  useEffect(() => {
+    let cancelled = false;
+    decodeShareHash(window.location.hash).then((shared) => {
+      if (shared !== null && !cancelled) setCode(shared);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const lineCount = code.split('\n').length;
 
@@ -435,7 +459,7 @@ export function DotsPlayground() {
   // Put the current DOTS source in the URL hash and copy the link, so the
   // exact playground configuration can be shared.
   const handleShareLink = useCallback(async () => {
-    const hash = `#dots=${encodeShareHash(codeRef.current)}`;
+    const hash = await encodeShareHash(codeRef.current);
     window.history.replaceState(null, '', hash);
     try {
       await navigator.clipboard.writeText(
