@@ -100,6 +100,8 @@ function themeFromPalette(p: DiagramPalette): DiagramTheme {
     port: secondary,
     portHover: accent,
     portText: secondary,
+    // A port nothing wires reads as a warning, not an error: amber, not red.
+    portAlert: isDark ? '#ffaa33' : '#d97706',
     wire: primary,
     wireSelected: accent,
     wireLabel: muted,

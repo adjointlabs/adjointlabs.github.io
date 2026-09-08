@@ -161,6 +161,7 @@ export function DotsPlayground() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [gridOn, setGridOn] = useState(false);
+  const [alertPortsOn, setAlertPortsOn] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -170,6 +171,8 @@ export function DotsPlayground() {
   const codeRef = useRef(code); // Keep latest code for theme changes
   // Grid on/off, held in a ref so it survives the editor re-init on theme change.
   const gridOnRef = useRef(false);
+  // Same for the unconnected-port alert.
+  const alertPortsOnRef = useRef(false);
   // Last DOTS text the editor itself emitted via onChange. Used to skip the
   // self-echo reload below (the editor already holds this text).
   const lastEmittedRef = useRef<string | null>(null);
@@ -215,6 +218,7 @@ export function DotsPlayground() {
       dotsEditorRef.current = new DotsEditor(diagramRef.current!, {
         theme: buildDiagramTheme(),
         grid: { enabled: gridOnRef.current },
+        alertUnconnectedPorts: alertPortsOnRef.current,
         onViewportChange: (z) => setZoom(z),
         onChange: (newDots) => {
           // When diagram changes, update the code editor. Record it so the
@@ -328,6 +332,16 @@ export function DotsPlayground() {
       const next = !on;
       gridOnRef.current = next;
       dotsEditorRef.current?.setGrid({ enabled: next });
+      return next;
+    });
+  }, []);
+
+  // Ring every port no wire reaches (a missing hypothesis, in a proof diagram).
+  const handleToggleAlertPorts = useCallback(() => {
+    setAlertPortsOn((on) => {
+      const next = !on;
+      alertPortsOnRef.current = next;
+      dotsEditorRef.current?.setAlertUnconnectedPorts(next);
       return next;
     });
   }, []);
@@ -664,6 +678,23 @@ export function DotsPlayground() {
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" d="M9 4v16M15 4v16M4 9h16M4 15h16" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleAlertPorts}
+                  title={
+                    alertPortsOn
+                      ? 'Unconnected ports: highlighted'
+                      : 'Highlight unconnected ports (nothing wired in or out)'
+                  }
+                  aria-label="Highlight unconnected ports"
+                  aria-pressed={alertPortsOn}
+                  className={`p-1 rounded transition-colors ${alertPortsOn ? 'text-[--color-accent] bg-[--color-background]' : 'text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background]'}`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <circle cx="12" cy="12" r="3" />
+                    <circle cx="12" cy="12" r="8" strokeDasharray="3 3" />
                   </svg>
                 </button>
                 <button
