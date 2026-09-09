@@ -95,6 +95,9 @@ function themeFromPalette(p: DiagramPalette): DiagramTheme {
     // Subgraph interior reads as empty "space" (same as the canvas background),
     // so nested boxes look like they sit in a movable area.
     clusterFill: background,
+    // Header strip of an expanded graph — its drag handle: a whisper of the
+    // box-fill tone so it stands off the empty interior.
+    clusterHeader: mix(background, toward, isDark ? 0.08 : 0.05),
     headerText: primary,
     typeText: muted,
     port: secondary,
