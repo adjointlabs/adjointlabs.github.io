@@ -546,7 +546,7 @@ export function DotsPlayground() {
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
-    <div className="min-h-screen bg-[--color-background] flex flex-col">
+    <div className="h-screen overflow-hidden bg-[--color-background] flex flex-col">
       {/* Accent line */}
       <div className="h-[3px] bg-[--color-accent] flex-shrink-0" />
       
@@ -594,40 +594,45 @@ export function DotsPlayground() {
           <div 
             className="flex-1 flex overflow-hidden"
           >
-            {/* Line numbers */}
-            <div 
-              className="flex-shrink-0 py-4 px-3 text-right select-none border-r border-[--color-border] bg-[--color-surface]/50"
-              style={{ fontFamily: '"Source Code Pro", monospace', fontSize: 14, lineHeight: '21px' }}
-            >
-              {Array.from({ length: lineCount }, (_, i) => (
-                <div key={i + 1} className="text-[--color-text-muted]">
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-            {/* Editor */}
+            {/* Scrolls code and line numbers together, independent of the page */}
             <div 
               ref={editorRef}
               className="flex-1 overflow-auto playground-scrollbar"
               onClick={updateCursorPosition}
               onKeyUp={updateCursorPosition}
             >
-              <Editor
-                value={code}
-                onValueChange={(newCode) => {
-                  setCode(newCode);
-                  setTimeout(updateCursorPosition, 0);
-                }}
-                highlight={(c) => highlightDotsCode(c, matchPair)}
-                padding={16}
-                style={{
-                  fontFamily: '"Source Code Pro", monospace',
-                  fontSize: 14,
-                  lineHeight: '21px',
-                  minHeight: '100%',
-                }}
-                className="focus:outline-none"
-              />
+              <div className="flex min-h-full">
+                {/* Line numbers */}
+                <div 
+                  className="flex-shrink-0 py-4 px-3 text-right select-none border-r border-[--color-border] bg-[--color-surface]/50"
+                  style={{ fontFamily: '"Source Code Pro", monospace', fontSize: 14, lineHeight: '21px' }}
+                >
+                  {Array.from({ length: lineCount }, (_, i) => (
+                    <div key={i + 1} className="text-[--color-text-muted]">
+                      {i + 1}
+                    </div>
+                  ))}
+                </div>
+                {/* Editor */}
+                <div className="flex-1">
+                  <Editor
+                    value={code}
+                    onValueChange={(newCode) => {
+                      setCode(newCode);
+                      setTimeout(updateCursorPosition, 0);
+                    }}
+                    highlight={(c) => highlightDotsCode(c, matchPair)}
+                    padding={16}
+                    style={{
+                      fontFamily: '"Source Code Pro", monospace',
+                      fontSize: 14,
+                      lineHeight: '21px',
+                      minHeight: '100%',
+                    }}
+                    className="focus:outline-none"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           {/* Status bar */}
