@@ -101,6 +101,16 @@ function splitAttrEntries(inner: string): string[] {
   return out;
 }
 
+let measureCtx: CanvasRenderingContext2D | null = null;
+// Advance width of the code editor's monospace font (14px Source Code Pro).
+// Measured per call: cheap, and correct once the webfont finishes loading.
+function monoCharWidth(): number {
+  measureCtx ??= document.createElement('canvas').getContext('2d');
+  if (!measureCtx) return 8.4;
+  measureCtx.font = '14px "Source Code Pro", monospace';
+  return measureCtx.measureText('MMMMMMMMMM').width / 10;
+}
+
 // Share links à la quiver: the DOTS source travels in the URL hash, so
 // configurations can be shared as plain links with no server involved.
 // #dotz= is deflate-compressed base64url (3-4x shorter); #dots= is plain
@@ -165,8 +175,10 @@ export function DotsPlayground() {
   const [shareCopied, setShareCopied] = useState(false);
   // Full-screen one pane by collapsing the other.
   const [collapsed, setCollapsed] = useState<'code' | 'diagram' | null>(null);
-  // Source span of the first selected canvas element, highlighted in the code.
+  // Source spans of the first selected canvas element: its whole statement
+  // (band) and just its name token (word box), highlighted in the code.
   const [selSpan, setSelSpan] = useState<{ start: number; end: number } | null>(null);
+  const [nameSpan, setNameSpan] = useState<{ start: number; end: number } | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
@@ -180,6 +192,9 @@ export function DotsPlayground() {
   // Last DOTS text the editor itself emitted via onChange. Used to skip the
   // self-echo reload below (the editor already holds this text).
   const lastEmittedRef = useRef<string | null>(null);
+  // Selection ids last seen, to scroll the code pane only when the selection
+  // actually changes (not on every span refresh after a text edit).
+  const lastSelIdsRef = useRef('');
 
   // Track code for reinitialization
   useEffect(() => {
@@ -236,9 +251,12 @@ export function DotsPlayground() {
         alertUnconnectedPorts: alertPortsOnRef.current,
         onViewportChange: (z) => setZoom(z),
         onSelectionChange: (sel) => {
-          const span = sel.find((s) => s.span !== null)?.span ?? null;
-          setSelSpan(span);
-          if (span) scrollCodeTo(span.start);
+          const first = sel.find((s) => s.span !== null) ?? null;
+          setSelSpan(first?.span ?? null);
+          setNameSpan(first?.nameSpan ?? null);
+          const ids = sel.map((s) => s.id).join(',');
+          if (first?.span && ids !== lastSelIdsRef.current) scrollCodeTo(first.span.start);
+          lastSelIdsRef.current = ids;
         },
         onChange: (newDots) => {
           // When diagram changes, update the code editor. Record it so the
@@ -305,6 +323,22 @@ export function DotsPlayground() {
       );
     }
   }, [code]);
+
+  // Clicking in the code selects the element under the caret on the canvas
+  // (and marks its source here). select() is host-initiated and does not echo
+  // onSelectionChange, so this cannot loop or steal scroll position.
+  const handleCodeClick = useCallback(() => {
+    updateCursorPosition();
+    const textarea = editorRef.current?.querySelector('textarea');
+    const ed = dotsEditorRef.current;
+    if (!textarea || !ed) return;
+    if (textarea.selectionStart !== textarea.selectionEnd) return; // text drag, not a lookup
+    const el = ed.elementAt(textarea.selectionStart);
+    ed.select(el ? [el.id] : []);
+    lastSelIdsRef.current = el ? String(el.id) : '';
+    setSelSpan(el?.span ?? null);
+    setNameSpan(el?.nameSpan ?? null);
+  }, [updateCursorPosition]);
 
   const handleMouseDown = useCallback(() => {
     setIsDragging(true);
@@ -632,11 +666,11 @@ export function DotsPlayground() {
             {/* Scrolls code and line numbers together, independent of the page */}
             <div 
               ref={editorRef}
-              className="flex-1 overflow-auto playground-scrollbar"
-              onClick={updateCursorPosition}
+              className="flex-1 overflow-auto playground-scrollbar playground-nowrap"
+              onClick={handleCodeClick}
               onKeyUp={updateCursorPosition}
             >
-              <div className="relative flex min-h-full">
+              <div className="relative flex min-h-full w-max min-w-full">
                 {/* Source of the selected canvas element */}
                 {selSpan && (() => {
                   const startLine = code.slice(0, selSpan.start).split('\n').length - 1;
@@ -651,7 +685,7 @@ export function DotsPlayground() {
                 })()}
                 {/* Line numbers */}
                 <div 
-                  className="flex-shrink-0 py-4 px-3 text-right select-none border-r border-[--color-border] bg-[--color-surface]/50"
+                  className="flex-shrink-0 py-4 px-3 text-right select-none border-r border-[--color-border] bg-[--color-surface] sticky left-0 z-10"
                   style={{ fontFamily: '"Source Code Pro", monospace', fontSize: 14, lineHeight: '21px' }}
                 >
                   {Array.from({ length: lineCount }, (_, i) => (
@@ -661,7 +695,26 @@ export function DotsPlayground() {
                   ))}
                 </div>
                 {/* Editor */}
-                <div className="flex-1">
+                <div className="relative flex-1">
+                  {/* Name token of the selected canvas element */}
+                  {nameSpan && (() => {
+                    const before = code.slice(0, nameSpan.start);
+                    const line = before.split('\n').length - 1;
+                    const col = nameSpan.start - (before.lastIndexOf('\n') + 1);
+                    const cw = monoCharWidth();
+                    return (
+                      <div
+                        aria-hidden
+                        className="absolute pointer-events-none rounded-sm bg-[--color-accent]/30"
+                        style={{
+                          top: 16 + line * 21 + 1,
+                          left: 16 + col * cw - 1,
+                          width: (nameSpan.end - nameSpan.start) * cw + 2,
+                          height: 19,
+                        }}
+                      />
+                    );
+                  })()}
                   <Editor
                     value={code}
                     onValueChange={(newCode) => {

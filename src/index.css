@@ -64,6 +64,17 @@ body {
 }
 
 /* Custom scrollbar for playground */
+/* No soft-wrapping in the playground code editor: line numbers and the
+   selection highlights are positioned on the logical-line grid, which only
+   matches the visible text when long lines scroll instead of wrapping.
+   react-simple-code-editor hardcodes pre-wrap inline, hence !important. */
+.playground-nowrap textarea,
+.playground-nowrap pre {
+  white-space: pre !important;
+  word-wrap: normal !important;
+  overflow-wrap: normal !important;
+}
+
 .playground-scrollbar::-webkit-scrollbar {
   width: 8px;
   height: 8px;
