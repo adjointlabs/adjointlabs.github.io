@@ -163,6 +163,10 @@ export function DotsPlayground() {
   const [gridOn, setGridOn] = useState(false);
   const [alertPortsOn, setAlertPortsOn] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  // Full-screen one pane by collapsing the other.
+  const [collapsed, setCollapsed] = useState<'code' | 'diagram' | null>(null);
+  // Source span of the first selected canvas element, highlighted in the code.
+  const [selSpan, setSelSpan] = useState<{ start: number; end: number } | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
@@ -203,6 +207,17 @@ export function DotsPlayground() {
     setDiagnostics(diags.filter((d) => d.severity === 'error').map((d) => d.message));
   }, []);
 
+  // Bring a source offset into view in the code pane (top third), if needed.
+  const scrollCodeTo = useCallback((offset: number) => {
+    const pane = editorRef.current;
+    if (!pane) return;
+    const line = codeRef.current.slice(0, offset).split('\n').length - 1;
+    const y = 16 + line * 21; // editor padding + line height
+    if (y < pane.scrollTop + 8 || y > pane.scrollTop + pane.clientHeight - 29) {
+      pane.scrollTo({ top: Math.max(0, y - pane.clientHeight / 3), behavior: 'smooth' });
+    }
+  }, []);
+
   // Initialize the DOTS editor (reinitialize on theme change).
   // graph-editor/standalone bundles ELK itself, so no global setup is needed.
   useEffect(() => {
@@ -220,6 +235,11 @@ export function DotsPlayground() {
         grid: { enabled: gridOnRef.current },
         alertUnconnectedPorts: alertPortsOnRef.current,
         onViewportChange: (z) => setZoom(z),
+        onSelectionChange: (sel) => {
+          const span = sel.find((s) => s.span !== null)?.span ?? null;
+          setSelSpan(span);
+          if (span) scrollCodeTo(span.start);
+        },
         onChange: (newDots) => {
           // When diagram changes, update the code editor. Record it so the
           // reload effect below doesn't feed the editor's own output back in.
@@ -586,10 +606,25 @@ export function DotsPlayground() {
         {/* Editor panel */}
         <div 
           className="flex flex-col"
-          style={{ width: `${splitPercent}%` }}
+          style={{
+            width: collapsed === 'diagram' ? '100%' : `${splitPercent}%`,
+            display: collapsed === 'code' ? 'none' : undefined,
+          }}
         >
-          <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center h-10">
+          <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center justify-between h-10">
             <span className="text-sm font-medium text-[--color-text-secondary]">Code</span>
+            <button
+              type="button"
+              onClick={() => setCollapsed('code')}
+              title="Hide code — full-width diagram"
+              aria-label="Hide code"
+              className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 19l-7-7 7-7" />
+              </svg>
+            </button>
           </div>
           <div 
             className="flex-1 flex overflow-hidden"
@@ -601,7 +636,19 @@ export function DotsPlayground() {
               onClick={updateCursorPosition}
               onKeyUp={updateCursorPosition}
             >
-              <div className="flex min-h-full">
+              <div className="relative flex min-h-full">
+                {/* Source of the selected canvas element */}
+                {selSpan && (() => {
+                  const startLine = code.slice(0, selSpan.start).split('\n').length - 1;
+                  const endLine = code.slice(0, Math.max(selSpan.start, selSpan.end - 1)).split('\n').length - 1;
+                  return (
+                    <div
+                      aria-hidden
+                      className="absolute left-0 right-0 pointer-events-none bg-[--color-accent]/10 border-l-2 border-[--color-accent]"
+                      style={{ top: 16 + startLine * 21, height: (endLine - startLine + 1) * 21 }}
+                    />
+                  );
+                })()}
                 {/* Line numbers */}
                 <div 
                   className="flex-shrink-0 py-4 px-3 text-right select-none border-r border-[--color-border] bg-[--color-surface]/50"
@@ -642,7 +689,24 @@ export function DotsPlayground() {
           </div>
         </div>
 
+        {/* Collapsed-code strip: reopen the code pane */}
+        {collapsed === 'code' && (
+          <button
+            type="button"
+            onClick={() => setCollapsed(null)}
+            title="Show code"
+            aria-label="Show code"
+            className="flex-shrink-0 w-7 border-r border-[--color-border] bg-[--color-surface] flex items-start justify-center pt-2 text-[--color-text-secondary] hover:text-[--color-accent] transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 5l7 7-7 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
+
         {/* Resizable divider */}
+        {collapsed === null && (
         <div
           onMouseDown={handleMouseDown}
           className="flex-shrink-0 cursor-col-resize group relative"
@@ -650,11 +714,15 @@ export function DotsPlayground() {
         >
           <div className={`absolute top-0 bottom-0 w-px bg-[--color-border] group-hover:bg-[--color-text-muted] ${isDragging ? 'bg-[--color-accent]' : ''}`} style={{ left: '4px' }} />
         </div>
+        )}
 
         {/* Preview panel */}
         <div 
           className="flex flex-col"
-          style={{ width: `${100 - splitPercent}%` }}
+          style={{
+            width: collapsed === 'code' ? '100%' : `${100 - splitPercent}%`,
+            display: collapsed === 'diagram' ? 'none' : undefined,
+          }}
         >
           <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center justify-between h-10">
             <span className="text-sm font-medium text-[--color-text-secondary]">Diagram</span>
@@ -819,6 +887,19 @@ export function DotsPlayground() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M20 9H9a5 5 0 0 0 0 10h1" />
                   </svg>
                 </button>
+                <span className="w-px h-4 bg-[--color-border] mx-0.5" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={() => setCollapsed('diagram')}
+                  title="Hide diagram — full-width code"
+                  aria-label="Hide diagram"
+                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 5l7 7-7 7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -873,6 +954,22 @@ export function DotsPlayground() {
             <span>DOTS Graph</span>
           </div>
         </div>
+
+        {/* Collapsed-diagram strip: reopen the diagram pane */}
+        {collapsed === 'diagram' && (
+          <button
+            type="button"
+            onClick={() => setCollapsed(null)}
+            title="Show diagram"
+            aria-label="Show diagram"
+            className="flex-shrink-0 w-7 border-l border-[--color-border] bg-[--color-surface] flex items-start justify-center pt-2 text-[--color-text-secondary] hover:text-[--color-accent] transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 19l-7-7 7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
