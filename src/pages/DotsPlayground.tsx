@@ -678,8 +678,13 @@ export function DotsPlayground() {
                   return (
                     <div
                       aria-hidden
-                      className="absolute left-0 right-0 pointer-events-none bg-[--color-accent]/10 border-l-2 border-[--color-accent]"
-                      style={{ top: 16 + startLine * 21, height: (endLine - startLine + 1) * 21 }}
+                      className="absolute left-0 right-0 pointer-events-none border-l-2 border-[--color-accent]"
+                      style={{
+                        top: 16 + startLine * 21,
+                        height: (endLine - startLine + 1) * 21,
+                        // Tailwind's /opacity modifier can't alpha a var() color
+                        backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)',
+                      }}
                     />
                   );
                 })()}
@@ -705,12 +710,13 @@ export function DotsPlayground() {
                     return (
                       <div
                         aria-hidden
-                        className="absolute pointer-events-none rounded-sm bg-[--color-accent]/30"
+                        className="absolute pointer-events-none rounded-sm"
                         style={{
                           top: 16 + line * 21 + 1,
                           left: 16 + col * cw - 1,
                           width: (nameSpan.end - nameSpan.start) * cw + 2,
                           height: 19,
+                          backgroundColor: 'color-mix(in srgb, var(--color-accent) 35%, transparent)',
                         }}
                       />
                     );
