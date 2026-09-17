@@ -81,26 +81,6 @@ safety {
   Guard.approved -> Response.text :: safe
 }`;
 
-// Split an attribute list's inner text on top-level commas, keeping commas
-// that sit inside quoted values (e.g. pos="100,200") together.
-function splitAttrEntries(inner: string): string[] {
-  const out: string[] = [];
-  let buf = '';
-  let inStr = false;
-  for (let i = 0; i < inner.length; i++) {
-    const c = inner[i];
-    if (c === '"' && inner[i - 1] !== '\\') inStr = !inStr;
-    if (c === ',' && !inStr) {
-      out.push(buf);
-      buf = '';
-    } else {
-      buf += c;
-    }
-  }
-  out.push(buf);
-  return out;
-}
-
 let measureCtx: CanvasRenderingContext2D | null = null;
 // Advance width of the code editor's monospace font (14px Source Code Pro).
 // Measured per call: cheap, and correct once the webfont finishes loading.
@@ -144,17 +124,6 @@ async function decodeShareHash(hash: string): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-// Remove every `pos=...` attribute from the source so the layout engine
-// re-arranges the boxes. Attribute lists left empty are dropped entirely.
-function stripPositions(src: string): string {
-  return src.replace(/[ \t]*\[([^\]]*)\]/g, (_whole, inner: string) => {
-    const kept = splitAttrEntries(inner)
-      .map((e) => e.trim())
-      .filter((e) => e.length > 0 && !/^pos\s*=/i.test(e));
-    return kept.length > 0 ? ` [${kept.join(', ')}]` : '';
-  });
 }
 
 export function DotsPlayground() {
@@ -249,6 +218,8 @@ export function DotsPlayground() {
         theme: buildDiagramTheme(),
         grid: { enabled: gridOnRef.current },
         alertUnconnectedPorts: alertPortsOnRef.current,
+        // The header toolbar carries fit/re-layout/undo/redo instead.
+        toolbar: false,
         onViewportChange: (z) => setZoom(z),
         onSelectionChange: (sel) => {
           const first = sel.find((s) => s.span !== null) ?? null;
@@ -540,27 +511,11 @@ export function DotsPlayground() {
     setTimeout(() => setShareCopied(false), 2000);
   }, []);
 
-  // Clear all `pos` attributes so the layout engine re-arranges every box.
-  const handleAutoArrange = useCallback(() => {
-    const cleaned = stripPositions(codeRef.current);
-    const ed = dotsEditorRef.current;
-    if (cleaned === codeRef.current) {
-      ed?.zoomToFit();
-      return;
-    }
-    // Skip the code-change reload echo; we apply the fresh layout directly.
-    lastEmittedRef.current = cleaned;
-    setCode(cleaned);
-    if (!ed) return;
-    try {
-      // Full reset so every box is re-laid out; fit once the async layout lands.
-      ed.loadFromDots(cleaned, { fit: true });
-      setParseError(null);
-      refreshDiagnostics();
-    } catch (e) {
-      setParseError((e as Error).message);
-    }
-  }, [refreshDiagnostics]);
+  // The editor's re-layout: clears saved positions (one undoable edit) and
+  // puts every box back on the layout engine, then fits.
+  const handleRelayout = useCallback(() => {
+    dotsEditorRef.current?.relayout();
+  }, []);
 
   // Keyboard zoom: Cmd/Ctrl +/-/0 (in/out/fit). The canvas itself already
   // handles undo/redo (Cmd/Ctrl+Z, +Shift/Y), delete and escape when focused.
@@ -831,9 +786,20 @@ export function DotsPlayground() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleAutoArrange}
-                  title="Auto-arrange (clear all positions)"
-                  aria-label="Auto-arrange"
+                  onClick={zoomToFit}
+                  title="Fit to view"
+                  aria-label="Fit to view"
+                  className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRelayout}
+                  title="Re-layout (clears saved positions)"
+                  aria-label="Re-layout"
                   className="p-1 rounded text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background] transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
