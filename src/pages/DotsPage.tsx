@@ -314,9 +314,14 @@ assignment : ID '=' ID`}</code>
                       <td className="px-4 py-2 border-b border-[--color-border]">Display label, if different from the graph/port name</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">expanded</code></td>
-                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">expanded=true</code></td>
-                      <td className="px-4 py-2">Whether a non-atomic graph is drawn expanded (structure visible) or collapsed to a node; ignored on atomic graphs</td>
+                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">expanded</code></td>
+                      <td className="px-4 py-2 border-b border-[--color-border]"><code className="bg-[--color-surface] px-1 rounded">expanded=true</code></td>
+                      <td className="px-4 py-2 border-b border-[--color-border]">Whether a non-atomic graph is drawn expanded (structure visible) or collapsed to a node; ignored on atomic graphs</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">domain</code></td>
+                      <td className="px-4 py-2"><code className="bg-[--color-surface] px-1 rounded">domain = python</code></td>
+                      <td className="px-4 py-2">On the implicit root only: the domain this file's types belong to. Hosts apply that domain's styling and validation when it is registered, and ignore it otherwise; an explicit host-side choice wins.</td>
                     </tr>
                   </tbody>
                 </table>

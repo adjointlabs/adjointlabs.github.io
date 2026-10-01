@@ -53,6 +53,17 @@ export function highlightDotsCode(code: string, matchPair?: readonly [number, nu
       continue;
     }
 
+    // Preprocessor remnants: a line whose first non-blank char is '#'
+    const hashLineMatch = remaining.match(/^(#[^\n]*)/);
+    if (hashLineMatch) {
+      const before = code.slice(0, code.length - remaining.length);
+      if (/(^|\n)[ \t]*$/.test(before)) {
+        result += `<span style="color: var(--syntax-comment); font-style: italic">${escapeHtml(hashLineMatch[1])}</span>`;
+        remaining = remaining.slice(hashLineMatch[1].length);
+        continue;
+      }
+    }
+
     // Strings (with escape sequences)
     const stringMatch = remaining.match(/^"([^"\\]|\\.)*"/);
     if (stringMatch) {
@@ -109,8 +120,14 @@ export function highlightDotsCode(code: string, matchPair?: readonly [number, nu
       continue;
     }
 
-    // Attribute names (before =)
-    const attrMatch = remaining.match(/^(label|pos|expanded|name|return_wire)(?=\s*=)/);
+    // Attribute names (before =): reserved ones emphasized, any ID accepted
+    const reservedAttrMatch = remaining.match(/^(pos|label|expanded|domain)(?=\s*=)/);
+    if (reservedAttrMatch) {
+      result += `<span style="color: var(--syntax-attribute); font-weight: 500">${escapeHtml(reservedAttrMatch[1])}</span>`;
+      remaining = remaining.slice(reservedAttrMatch[1].length);
+      continue;
+    }
+    const attrMatch = remaining.match(/^([A-Za-z_][A-Za-z0-9_]*)(?=\s*=[^=])/);
     if (attrMatch) {
       result += `<span style="color: var(--syntax-attribute)">${escapeHtml(attrMatch[1])}</span>`;
       remaining = remaining.slice(attrMatch[1].length);
