@@ -22,7 +22,14 @@ export function SidecarPage() {
           <p className="text-xl text-[--color-text-secondary] mb-8 leading-relaxed">
             Round-trip code ↔ architecture visualization.
           </p>
-          
+
+          <Link
+            to="/sidecar/playground"
+            className="inline-flex items-center gap-2 px-5 py-2.5 mb-8 rounded-md bg-[--color-accent] text-white font-medium hover:opacity-90 transition-opacity"
+          >
+            Try the playground — Lean proofs as diagrams →
+          </Link>
+
           <div className="prose prose-lg text-[--color-text-secondary] space-y-6">
             <p>
               Sidecar enables seamless translation between code and architectural diagrams. 
