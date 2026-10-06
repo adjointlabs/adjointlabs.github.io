@@ -333,6 +333,23 @@ export function SidecarPlayground() {
             setLeanCode((code) => code); // trigger the re-derivation effect
             return { ok: false };
           }
+          if (verdict.kind === 'proposal') {
+            // Mark the drawn hop `:: proposed` (amber, dashed): a claim the
+            // text does not store, until re-elaboration confirms it.
+            showEditNotice(verdict.note);
+            if (edits.length === 1) {
+              const e = edits[0]!;
+              const at = e.start + e.newText.replace(/[\s;]*$/u, '').length;
+              try {
+                coupling.applySource(edMod.TextDelta.of({ start: at, end: at, newText: ' :: proposed' }));
+                const marked = coupling.source.value;
+                setTimeout(() => dotsEditorRef.current?.applyExternalText(marked), 0);
+              } catch {
+                // the mark is cosmetic — the proposal stands either way
+              }
+            }
+            return { ok: true };
+          }
           if (verdict.kind === 'text') {
             // The debounced re-derivation effect rebuilds the chain and
             // merges the fresh derivation into the canvas incrementally.
@@ -699,7 +716,7 @@ export function SidecarPlayground() {
           </div>
           {/* Status bar */}
           <div className="flex-shrink-0 px-4 py-1.5 border-t border-[--color-border] bg-[--color-surface] flex items-center justify-between text-xs text-[--color-text-muted]">
-            <span>{tab === 'lean' ? 'Lean — two-way: canvas renames, justification edits and deletions write back' : 'DOTS — derived, read-only here'}</span>
+            <span>{tab === 'lean' ? 'Lean — two-way: renames, by-edits, deletes and extract/inline write back; drawn wires stay as proposals' : 'DOTS — derived, read-only here'}</span>
             {tab === 'lean' && <span>Ln {cursorPos.line}, Col {cursorPos.col}</span>}
           </div>
         </div>
