@@ -123,8 +123,9 @@ async function decodeShareHash(hash: string): Promise<string | null> {
 export function SidecarPlayground() {
   const { theme } = useTheme();
   const [leanCode, setLeanCode] = useState(defaultLean);
-  // The derived DOTS, as currently held by the editor (canvas edits land
-  // here — never back in the Lean source; the Lean lens is one-way for now).
+  // The derived DOTS, as currently held by the editor. Tier-1 canvas edits
+  // (justifications, hypothesis renames, deletions) write BACK into the Lean
+  // source through the backward mapping; view state stays canvas-only.
   const [dotsCode, setDotsCode] = useState('');
   const [tab, setTab] = useState<'lean' | 'dots'>('lean');
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
@@ -132,6 +133,8 @@ export function SidecarPlayground() {
   const [isDragging, setIsDragging] = useState(false);
   const [deriveError, setDeriveError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
+  // Why the last canvas edit did not reach the Lean source (auto-clears).
+  const [editNotice, setEditNotice] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -147,6 +150,13 @@ export function SidecarPlayground() {
   const diagramRef = useRef<HTMLDivElement>(null);
   const dotsEditorRef = useRef<DotsEditorType | null>(null);
   const leanModRef = useRef<LeanModule | null>(null);
+  const edModRef = useRef<EditorModule | null>(null);
+  // The backward chain: dots text ↔ graph (coupling) + where each box lives
+  // in the Lean source (complement), aligned to leanSnapshotRef.
+  const couplingRef = useRef<InstanceType<EditorModule['DotsCoupling']> | null>(null);
+  const complementRef = useRef<import('@adjointlabs/sidecar-lean').LeanComplement | null>(null);
+  const leanSnapshotRef = useRef('');
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leanCodeRef = useRef(leanCode); // Keep latest code for theme changes
   // The DOTS text of the last successful derivation. An unchanged derivation
   // (e.g. a comment edit in the Lean) keeps canvas state, extension-style.
@@ -193,6 +203,48 @@ export function SidecarPlayground() {
     }
   }, []);
 
+  // Derive + rebuild the backward chain for `leanText`. Returns the dots.
+  const rebuildChain = useCallback((leanText: string): string => {
+    const leanMod = leanModRef.current!;
+    const edMod = edModRef.current!;
+    const { view, complement } = leanMod.deriveLean(leanText);
+    couplingRef.current = edMod.DotsCoupling.fromView(view);
+    complementRef.current = complement;
+    leanSnapshotRef.current = leanText;
+    return couplingRef.current.source.value;
+  }, []);
+
+  // Fold the editor's current text (canvas-only state: positions, expansion)
+  // into the freshly rebuilt coupling, as one reconciled text edit.
+  const syncChainToEditor = useCallback(() => {
+    const ed = dotsEditorRef.current;
+    const coupling = couplingRef.current;
+    const edMod = edModRef.current;
+    if (!ed || !coupling || !edMod) return;
+    const current = ed.getDots();
+    const prev = coupling.source.value;
+    if (current === prev) return;
+    let s = 0;
+    while (s < prev.length && s < current.length && prev[s] === current[s]) s++;
+    let e1 = prev.length;
+    let e2 = current.length;
+    while (e1 > s && e2 > s && prev[e1 - 1] === current[e2 - 1]) {
+      e1--;
+      e2--;
+    }
+    try {
+      coupling.applySource(edMod.TextDelta.of({ start: s, end: e1, newText: current.slice(s, e2) }));
+    } catch {
+      // Unreconcilable editor state: the chain stays on the fresh derivation.
+    }
+  }, []);
+
+  const showEditNotice = useCallback((reason: string) => {
+    setEditNotice(reason);
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = setTimeout(() => setEditNotice(null), 5000);
+  }, []);
+
   // Initialize the editor (reinitialize on theme change): load the editor,
   // register the Lean proof domain, derive the proof graph from the source.
   useEffect(() => {
@@ -211,6 +263,7 @@ export function SidecarPlayground() {
     ]).then(([{ DotsEditor }, edMod, leanMod]) => {
       if (disposed || !diagramRef.current) return;
       leanModRef.current = leanMod;
+      edModRef.current = edMod;
       // The derived DOTS carries `domain = lean`; registering the domain lets
       // loadFromDots apply the proof-graph presentation and rules.
       edMod.registerDomain(leanMod.leanDomain);
@@ -241,15 +294,56 @@ export function SidecarPlayground() {
           lastSelIdsRef.current = ids;
         },
         onChange: (newDots) => {
-          // Canvas edits land in the derived DOTS (shown in the DOTS tab),
-          // never back in the Lean source: the lens is one-way for now.
           setDotsCode(newDots);
           refreshDiagnostics();
+        },
+        // The backward direction: classify each canvas gesture BEFORE it
+        // commits. Tier-1 edits (justifications, hypothesis renames, step
+        // deletion) land in the Lean source; view state stays canvas-only;
+        // everything else is vetoed with the reason.
+        onEdits: (edits) => {
+          const coupling = couplingRef.current;
+          const comp = complementRef.current;
+          if (!coupling || !comp) return { ok: true };
+          if (leanCodeRef.current !== leanSnapshotRef.current) {
+            showEditNotice('the Lean source changed — waiting for the re-derivation');
+            return { ok: false };
+          }
+          let verdict: ReturnType<LeanModule['backward']>;
+          try {
+            const { db } = new edMod.DotsLens().fwd(
+              edMod.TextDelta.of(...edits),
+              coupling.source,
+              coupling.view,
+              coupling.complement,
+            );
+            verdict = leanMod.backward(db, coupling.view, comp, leanSnapshotRef.current);
+          } catch {
+            showEditNotice('could not interpret this edit');
+            return { ok: false };
+          }
+          if (verdict.kind === 'refused') {
+            showEditNotice(verdict.reason);
+            return { ok: false };
+          }
+          try {
+            coupling.applySource(edMod.TextDelta.of(...edits));
+          } catch {
+            showEditNotice('the canvas and the source desynced — re-deriving');
+            setLeanCode((code) => code); // trigger the re-derivation effect
+            return { ok: false };
+          }
+          if (verdict.kind === 'text') {
+            // The debounced re-derivation effect rebuilds the chain and
+            // merges the fresh derivation into the canvas incrementally.
+            setLeanCode(edMod.applyTextEdits(leanSnapshotRef.current, verdict.edits));
+          }
+          return { ok: true };
         },
       });
 
       try {
-        const dots = leanMod.deriveDots(leanCodeRef.current);
+        const dots = rebuildChain(leanCodeRef.current);
         lastDerivedRef.current = dots;
         setDotsCode(dots);
         dotsEditorRef.current.loadFromDots(dots);
@@ -265,25 +359,29 @@ export function SidecarPlayground() {
       dotsEditorRef.current?.dispose();
       dotsEditorRef.current = null;
     };
-  }, [theme, refreshDiagnostics, scrollCodeToLine]);
+  }, [theme, refreshDiagnostics, scrollCodeToLine, rebuildChain, showEditNotice]);
 
   // Re-derive when the Lean source changes (with debounce). An unchanged
   // derivation keeps canvas state (positions, selection, canvas-only edits);
-  // a changed one resets the graph to the fresh derivation.
+  // a changed one merges the fresh derivation into the canvas. Either way
+  // the backward chain rebuilds (its spans index the new source) and then
+  // absorbs the editor's canvas-only state.
   useEffect(() => {
     const timeout = setTimeout(() => {
       const ed = dotsEditorRef.current;
       const leanMod = leanModRef.current;
       if (!ed || !leanMod) return;
       try {
-        const dots = leanMod.deriveDots(leanCode);
+        const dots = rebuildChain(leanCode);
         setDeriveError(null);
-        if (dots === lastDerivedRef.current) return;
-        lastDerivedRef.current = dots;
-        setDotsCode(dots);
-        // Incremental update: surviving boxes keep ids and positions.
-        ed.applyExternalText(dots);
-        refreshDiagnostics();
+        if (dots !== lastDerivedRef.current) {
+          lastDerivedRef.current = dots;
+          setDotsCode(dots);
+          // Incremental update: surviving boxes keep ids and positions.
+          ed.applyExternalText(dots);
+          refreshDiagnostics();
+        }
+        syncChainToEditor();
       } catch (e) {
         setDeriveError((e as Error).message);
       }
@@ -601,7 +699,7 @@ export function SidecarPlayground() {
           </div>
           {/* Status bar */}
           <div className="flex-shrink-0 px-4 py-1.5 border-t border-[--color-border] bg-[--color-surface] flex items-center justify-between text-xs text-[--color-text-muted]">
-            <span>{tab === 'lean' ? 'Lean — one-way: source → graph' : 'DOTS — derived, read-only here'}</span>
+            <span>{tab === 'lean' ? 'Lean — two-way: canvas renames, justification edits and deletions write back' : 'DOTS — derived, read-only here'}</span>
             {tab === 'lean' && <span>Ln {cursorPos.line}, Col {cursorPos.col}</span>}
           </div>
         </div>
@@ -644,6 +742,11 @@ export function SidecarPlayground() {
           <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center justify-between h-10">
             <span className="text-sm font-medium text-[--color-text-secondary]">Proof graph</span>
             <div className="flex items-center gap-3 min-w-0">
+              {editNotice ? (
+                <span className="text-xs text-sky-500 truncate max-w-[260px]" title={editNotice}>
+                  ⓘ {editNotice}
+                </span>
+              ) : null}
               {deriveError ? (
                 <span className="text-xs text-red-500 truncate max-w-[200px]" title={deriveError}>
                   {deriveError}
