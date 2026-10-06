@@ -214,12 +214,14 @@ export function SidecarPlayground() {
     return couplingRef.current.source.value;
   }, []);
 
-  // Fold the editor's current text (canvas-only state: positions, expansion)
-  // into the freshly rebuilt coupling, as one reconciled text edit.
+  // Fold the editor's current text (canvas-only state: positions, expansion,
+  // proposal wires) into the freshly rebuilt coupling, as one reconciled text
+  // edit — and teach the fresh complement the re-applied canvas-born ids.
   const syncChainToEditor = useCallback(() => {
     const ed = dotsEditorRef.current;
     const coupling = couplingRef.current;
     const edMod = edModRef.current;
+    const leanMod = leanModRef.current;
     if (!ed || !coupling || !edMod) return;
     const current = ed.getDots();
     const prev = coupling.source.value;
@@ -233,7 +235,8 @@ export function SidecarPlayground() {
       e2--;
     }
     try {
-      coupling.applySource(edMod.TextDelta.of({ start: s, end: e1, newText: current.slice(s, e2) }));
+      const db = coupling.applySource(edMod.TextDelta.of({ start: s, end: e1, newText: current.slice(s, e2) }));
+      if (leanMod && complementRef.current) leanMod.learnCanvasState(db, complementRef.current);
     } catch {
       // Unreconcilable editor state: the chain stays on the fresh derivation.
     }
