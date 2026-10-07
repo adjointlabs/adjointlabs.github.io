@@ -133,7 +133,7 @@ export function SidecarPlayground() {
   const [isDragging, setIsDragging] = useState(false);
   const [deriveError, setDeriveError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
-  const [audit, setAudit] = useState({ sorries: 0, warnings: 0 });
+  const [audit, setAudit] = useState({ sorries: 0, warnings: 0, infos: 0 });
   // Why the last canvas edit did not reach the Lean source (auto-clears).
   const [editNotice, setEditNotice] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -198,6 +198,7 @@ export function SidecarPlayground() {
     setAudit({
       sorries: sorries.length,
       warnings: diags.filter((d) => d.severity === 'warning').length,
+      infos: diags.filter((d) => d.severity === 'info').length,
     });
   }, []);
 
@@ -784,6 +785,14 @@ export function SidecarPlayground() {
                   title="Unproven premises, unjustified conclusions and other advisories — expand badged boxes to inspect"
                 >
                   ⚠ {audit.warnings}
+                </span>
+              ) : null}
+              {audit.infos > 0 ? (
+                <span
+                  className="text-xs text-[--color-text-secondary] flex-shrink-0"
+                  title="Facts proven but never used, hypotheses never referenced — padding, or silent uses the heuristic missed"
+                >
+                  · {audit.infos} unused
                 </span>
               ) : null}
               {editNotice ? (

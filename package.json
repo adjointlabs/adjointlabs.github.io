@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@adjointlabs/graph-editor": "^0.1.79",
-    "@adjointlabs/sidecar-lean": "^0.7.0",
+    "@adjointlabs/graph-editor": "^0.1.80",
+    "@adjointlabs/sidecar-lean": "^0.8.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.16.0",
