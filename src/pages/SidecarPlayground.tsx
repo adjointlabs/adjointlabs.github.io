@@ -133,6 +133,7 @@ export function SidecarPlayground() {
   const [isDragging, setIsDragging] = useState(false);
   const [deriveError, setDeriveError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
+  const [audit, setAudit] = useState({ sorries: 0, warnings: 0 });
   // Why the last canvas edit did not reach the Lean source (auto-clears).
   const [editNotice, setEditNotice] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -187,10 +188,17 @@ export function SidecarPlayground() {
   const shownCode = tab === 'lean' ? leanCode : dotsCode;
   const lineCount = shownCode.split('\n').length;
 
-  // Collect error-severity diagnostics from the derived graph.
+  // Collect diagnostics from the derived graph: errors for the banner, and
+  // the audit summary (sorries = unproven boxes, warnings = holes/smells).
   const refreshDiagnostics = useCallback(() => {
     const diags = dotsEditorRef.current?.getDiagnostics() ?? [];
-    setDiagnostics(diags.filter((d) => d.severity === 'error').map((d) => d.message));
+    const errors = diags.filter((d) => d.severity === 'error');
+    const sorries = errors.filter((d) => /not proven/.test(d.message));
+    setDiagnostics(errors.filter((d) => !/not proven/.test(d.message)).map((d) => d.message));
+    setAudit({
+      sorries: sorries.length,
+      warnings: diags.filter((d) => d.severity === 'warning').length,
+    });
   }, []);
 
   // Bring a Lean source line into view in the code pane (top third), if needed.
@@ -762,6 +770,22 @@ export function SidecarPlayground() {
           <div className="px-4 py-2 border-b border-[--color-border] bg-[--color-surface] flex items-center justify-between h-10">
             <span className="text-sm font-medium text-[--color-text-secondary]">Proof graph</span>
             <div className="flex items-center gap-3 min-w-0">
+              {audit.sorries > 0 ? (
+                <span
+                  className="text-xs text-red-500 flex-shrink-0"
+                  title="Boxes whose justification is a sorry — the proof has holes"
+                >
+                  ✕ {audit.sorries} sorr{audit.sorries === 1 ? 'y' : 'ies'}
+                </span>
+              ) : null}
+              {audit.warnings > 0 ? (
+                <span
+                  className="text-xs text-amber-500 flex-shrink-0"
+                  title="Unproven premises, unjustified conclusions and other advisories — expand badged boxes to inspect"
+                >
+                  ⚠ {audit.warnings}
+                </span>
+              ) : null}
               {editNotice ? (
                 <span className="text-xs text-sky-500 truncate max-w-[260px]" title={editNotice}>
                   ⓘ {editNotice}
