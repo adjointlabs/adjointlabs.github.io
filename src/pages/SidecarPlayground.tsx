@@ -142,6 +142,9 @@ export function SidecarPlayground() {
   const [gridOn, setGridOn] = useState(false);
   const [alertPortsOn, setAlertPortsOn] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  // Elaboration facts (extractor JSON) loaded by the user: record count, or
+  // null when running on the heuristic alone.
+  const [factsCount, setFactsCount] = useState<number | null>(null);
   // Full-screen one pane by collapsing the other.
   const [collapsed, setCollapsed] = useState<'code' | 'diagram' | null>(null);
   // Lean source line (1-based) of the first selected box, from its `line` attr.
@@ -158,6 +161,10 @@ export function SidecarPlayground() {
   const complementRef = useRef<import('@adjointlabs/sidecar-lean').LeanComplement | null>(null);
   const leanSnapshotRef = useRef('');
   const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const factsRef = useRef<import('@adjointlabs/sidecar-lean').LeanFacts | null>(null);
+  const factsInputRef = useRef<HTMLInputElement>(null);
+  // Cycle through flagged elements on repeated chip clicks.
+  const revealCursorRef = useRef(0);
   const leanCodeRef = useRef(leanCode); // Keep latest code for theme changes
   // The DOTS text of the last successful derivation. An unchanged derivation
   // (e.g. a comment edit in the Lean) keeps canvas state, extension-style.
@@ -212,11 +219,12 @@ export function SidecarPlayground() {
     }
   }, []);
 
-  // Derive + rebuild the backward chain for `leanText`. Returns the dots.
+  // Derive + rebuild the backward chain for `leanText` (with elaboration
+  // facts when loaded). Returns the dots.
   const rebuildChain = useCallback((leanText: string): string => {
     const leanMod = leanModRef.current!;
     const edMod = edModRef.current!;
-    const { view, complement } = leanMod.deriveLean(leanText);
+    const { view, complement } = leanMod.deriveLean(leanText, factsRef.current ?? undefined);
     couplingRef.current = edMod.DotsCoupling.fromView(view);
     complementRef.current = complement;
     leanSnapshotRef.current = leanText;
@@ -355,7 +363,10 @@ export function SidecarPlayground() {
               try {
                 coupling.applySource(edMod.TextDelta.of({ start: at, end: at, newText: ' :: proposed' }));
                 const marked = coupling.source.value;
-                setTimeout(() => dotsEditorRef.current?.applyExternalText(marked), 0);
+                setTimeout(() => {
+                  dotsEditorRef.current?.applyExternalText(marked);
+                  setDotsCode(marked); // external syncs skip onChange
+                }, 0);
               } catch {
                 // the mark is cosmetic — the proposal stands either way
               }
@@ -401,6 +412,26 @@ export function SidecarPlayground() {
       const leanMod = leanModRef.current;
       if (!ed || !leanMod) return;
       try {
+        // Loaded facts are line-keyed: shift them under the (single-span)
+        // edit, dropping records on the dirty lines — the extension's rule.
+        if (factsRef.current && leanSnapshotRef.current !== leanCode) {
+          const prev = leanSnapshotRef.current;
+          let s = 0;
+          while (s < prev.length && s < leanCode.length && prev[s] === leanCode[s]) s++;
+          let e1 = prev.length;
+          let e2 = leanCode.length;
+          while (e1 > s && e2 > s && prev[e1 - 1] === leanCode[e2 - 1]) {
+            e1--;
+            e2--;
+          }
+          const startLine = prev.slice(0, s).split('\n').length;
+          const endLine = prev.slice(0, e1).split('\n').length;
+          const added = leanCode.slice(s, e2).split('\n').length - 1;
+          const removed = prev.slice(s, e1).split('\n').length - 1;
+          const shifted = leanMod.shiftFacts(factsRef.current, startLine, endLine, added - removed);
+          factsRef.current = shifted.tactics.length > 0 ? shifted : null;
+          setFactsCount(factsRef.current ? shifted.tactics.length : null);
+        }
         const dots = rebuildChain(leanCode);
         setDeriveError(null);
         if (dots !== lastDerivedRef.current) {
@@ -428,6 +459,70 @@ export function SidecarPlayground() {
       setCursorPos({ line: lines.length, col: lines[lines.length - 1].length + 1 });
     }
   }, []);
+
+  // Chip click → reveal the next flagged element of that tier on the canvas.
+  const revealFlag = useCallback((tier: 'sorry' | 'warning' | 'info') => {
+    const ed = dotsEditorRef.current;
+    if (!ed) return;
+    const hits = ed.getDiagnostics().filter((d) => {
+      if (d.nodeId === undefined) return false;
+      if (tier === 'sorry') return d.severity === 'error' && /not proven/.test(d.message);
+      return d.severity === tier;
+    });
+    if (hits.length === 0) return;
+    const d = hits[revealCursorRef.current % hits.length]!;
+    revealCursorRef.current++;
+    ed.revealNode(d.nodeId!);
+  }, []);
+
+  // Re-derive with the current facts state (loaded or cleared), keeping
+  // canvas state the way the re-derivation effect does.
+  const rederiveWithFacts = useCallback(() => {
+    const ed = dotsEditorRef.current;
+    if (!ed) return;
+    try {
+      const dots = rebuildChain(leanCodeRef.current);
+      setDeriveError(null);
+      if (dots !== lastDerivedRef.current) {
+        lastDerivedRef.current = dots;
+        setDotsCode(dots);
+        ed.applyExternalText(dots);
+        refreshDiagnostics();
+      }
+      syncChainToEditor();
+    } catch (e) {
+      setDeriveError((e as Error).message);
+    }
+  }, [rebuildChain, refreshDiagnostics, syncChainToEditor]);
+
+  const loadFactsFile = useCallback(
+    (file: File) => {
+      void file.text().then((text) => {
+        try {
+          const facts = JSON.parse(text) as import('@adjointlabs/sidecar-lean').LeanFacts;
+          if (!Array.isArray(facts.tactics)) throw new Error('not extractor output');
+          factsRef.current = facts;
+          setFactsCount(facts.tactics.length);
+          rederiveWithFacts();
+          showEditNotice(`elaboration facts loaded — ${facts.tactics.length} records; wires and flags are now exact`);
+        } catch {
+          showEditNotice('not extractor output — expected the JSON from extractor/Extract.lean');
+        }
+      });
+    },
+    [rederiveWithFacts, showEditNotice],
+  );
+
+  const handleFactsClick = useCallback(() => {
+    if (factsRef.current) {
+      factsRef.current = null;
+      setFactsCount(null);
+      rederiveWithFacts();
+      showEditNotice('elaboration facts cleared — back to the syntactic heuristic');
+      return;
+    }
+    factsInputRef.current?.click();
+  }, [rederiveWithFacts, showEditNotice]);
 
   const handleMouseDown = useCallback(() => {
     setIsDragging(true);
@@ -772,27 +867,41 @@ export function SidecarPlayground() {
             <span className="text-sm font-medium text-[--color-text-secondary]">Proof graph</span>
             <div className="flex items-center gap-3 min-w-0">
               {audit.sorries > 0 ? (
-                <span
-                  className="text-xs text-red-500 flex-shrink-0"
-                  title="Boxes whose justification is a sorry — the proof has holes"
+                <button
+                  type="button"
+                  onClick={() => revealFlag('sorry')}
+                  className="text-xs text-red-500 flex-shrink-0 hover:underline"
+                  title="Boxes whose justification is a sorry — click to locate (click again for the next)"
                 >
                   ✕ {audit.sorries} sorr{audit.sorries === 1 ? 'y' : 'ies'}
-                </span>
+                </button>
               ) : null}
               {audit.warnings > 0 ? (
-                <span
-                  className="text-xs text-amber-500 flex-shrink-0"
-                  title="Unproven premises, unjustified conclusions and other advisories — expand badged boxes to inspect"
+                <button
+                  type="button"
+                  onClick={() => revealFlag('warning')}
+                  className="text-xs text-amber-500 flex-shrink-0 hover:underline"
+                  title="Unproven premises, unjustified conclusions and other advisories — click to locate (click again for the next)"
                 >
                   ⚠ {audit.warnings}
-                </span>
+                </button>
               ) : null}
               {audit.infos > 0 ? (
-                <span
-                  className="text-xs text-[--color-text-secondary] flex-shrink-0"
-                  title="Facts proven but never used, hypotheses never referenced — padding, or silent uses the heuristic missed"
+                <button
+                  type="button"
+                  onClick={() => revealFlag('info')}
+                  className="text-xs text-[--color-text-secondary] flex-shrink-0 hover:underline"
+                  title="Facts proven but never used, hypotheses never referenced — click to locate (click again for the next)"
                 >
                   · {audit.infos} unused
+                </button>
+              ) : null}
+              {factsCount !== null ? (
+                <span
+                  className="text-xs text-emerald-500 flex-shrink-0"
+                  title="Elaboration facts are loaded: wires and flags are exact, silent omega/simp uses included"
+                >
+                  ƒ {factsCount}
                 </span>
               ) : null}
               {editNotice ? (
@@ -814,6 +923,30 @@ export function SidecarPlayground() {
                 </span>
               ) : null}
               <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleFactsClick}
+                  title={
+                    factsCount !== null
+                      ? 'Clear the loaded elaboration facts (back to the syntactic heuristic)'
+                      : 'Load elaboration facts — the JSON from: lake env lean --run extractor/Extract.lean File.lean'
+                  }
+                  aria-label="Load elaboration facts"
+                  className={`px-1.5 py-0.5 rounded text-xs transition-colors ${factsCount !== null ? 'text-emerald-500 bg-[--color-background]' : 'text-[--color-text-secondary] hover:text-[--color-accent] hover:bg-[--color-background]'}`}
+                >
+                  ƒ facts
+                </button>
+                <input
+                  ref={factsInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) loadFactsFile(f);
+                    e.target.value = '';
+                  }}
+                />
                 <button
                   type="button"
                   onClick={handleToggleGrid}
