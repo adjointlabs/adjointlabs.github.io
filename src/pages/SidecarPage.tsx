@@ -32,20 +32,78 @@ export function SidecarPage() {
 
           <div className="prose prose-lg text-[--color-text-secondary] space-y-6">
             <p>
-              Sidecar enables seamless translation between code and architectural diagrams. 
-              Edit your code and see the architecture update in real-time, or modify the 
-              diagram and have the changes reflected back in your codebase.
+              Sidecar shows source code as an editable node-and-wire diagram. Not a
+              drawing <em>of</em> the code, but a projection of it, kept in sync by a
+              bidirectional lens. Edit the text and the diagram updates. Edit the
+              diagram and, where the edit has a textual meaning, the source changes
+              with it. Where it doesn't, Sidecar tells you instead of pretending.
             </p>
-            
+
             <h2 className="text-2xl font-semibold text-[--color-text-primary] mt-12 mb-4">
-              Features
+              Today: Lean proofs
             </h2>
+            <p>
+              The first language with a full pipeline is{' '}
+              <a href="https://lean-lang.org" className="text-[--color-accent] hover:underline">Lean</a>.
+              A structured proof is already a graph, and the diagram draws exactly that:
+            </p>
             <ul className="list-disc list-inside space-y-2">
-              <li>Bi-directional synchronization</li>
-              <li>Live architecture visualization</li>
-              <li>Support for multiple languages</li>
-              <li>IDE integration</li>
+              <li>
+                <strong className="text-[--color-text-primary]">A box is a statement that binds facts</strong>:
+                a lemma, a <code className="bg-[--color-surface] px-1 rounded">have</code>, a case branch. Expand it to read its proof;
+                collapse it and only its signature remains, the premises it needs and
+                the facts it delivers. A collapsed box shows what you're taking on
+                trust, though its proof is still there, and still checked.
+              </li>
+              <li>
+                <strong className="text-[--color-text-primary]">A wire is a fact</strong>: one proof of one
+                proposition, flowing from the step that establishes it to the steps
+                that use it. Premises arrive on the left, conclusions leave on the
+                right. Hypotheses from the enclosing scope appear as context ports,
+                not lines.
+              </li>
+              <li>
+                <strong className="text-[--color-text-primary]">The flags audit the proof</strong>. A box
+                hiding a <code className="bg-[--color-surface] px-1 rounded">sorry</code> anywhere inside wears a badge, everything
+                resting on it is washed pale red, unproven premises ring their ports,
+                and unused facts dim gray: the classic tells, routed to where your
+                eyes are. Built for one posture: a human checking a proof an AI wrote.
+              </li>
+              <li>
+                <strong className="text-[--color-text-primary]">Edits flow back where they can</strong>.
+                Rename a hypothesis, rewrite a justification, delete a step, extract
+                or inline a <code className="bg-[--color-surface] px-1 rounded">have</code> by grouping, and the <code className="bg-[--color-surface] px-1 rounded">.lean</code>{' '}
+                source is edited for you. Draw a wire and it becomes a dashed amber{' '}
+                <em>proposal</em>, a claim the text doesn't store, confirmed or
+                dropped when the file is re-elaborated.
+              </li>
             </ul>
+            <p>
+              The instant derivation is syntactic: it runs on every keystroke, and
+              survives all 4,000+ files of Mathlib without a crash. An optional
+              elaboration pass feeds back what the tactics <em>really</em> used,
+              silent <code className="bg-[--color-surface] px-1 rounded">omega</code> premises included, so every wire is exact.
+            </p>
+
+            <h2 className="text-2xl font-semibold text-[--color-text-primary] mt-12 mb-4">
+              Next to it: Python, and the editor itself
+            </h2>
+            <p>
+              In the VS Code extension (where Sidecar is being built), the same
+              machinery runs a fully bidirectional Python lens: statements and
+              expressions as nested boxes, with a verbatim fallback tier so that
+              effectively all real-world Python translates and round-trips. The
+              diagrams themselves are plain{' '}
+              <Link to="/dots" className="text-[--color-accent] hover:underline">DOTS</Link>{' '}
+              text: every derived graph is an ordinary file you can read, diff, and
+              edit in the <Link to="/dots/playground" className="text-[--color-accent] hover:underline">DOTS playground</Link>.
+            </p>
+            <p className="text-base text-[--color-text-muted]">
+              Status: Lean runs in the browser playground above and in the extension;
+              Python lives in the extension. More languages follow the same recipe:
+              a domain that teaches the editor what the boxes mean, and a lens that
+              keeps text and diagram honest.
+            </p>
           </div>
         </div>
       </main>
