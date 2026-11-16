@@ -695,6 +695,24 @@ export function SidecarPlayground() {
             </Link>
             <span className="text-[--color-text-muted]">/</span>
             <span className="font-medium text-[--color-text-primary]">Playground</span>
+            <span
+              className="ml-3 flex items-center gap-0.5 rounded-md border border-[--color-border] p-0.5 text-sm"
+              role="group"
+              aria-label="Playground language"
+            >
+              <span
+                aria-current="page"
+                className="px-2 py-0.5 rounded font-medium text-[--color-text-primary] bg-[--color-background]"
+              >
+                Lean
+              </span>
+              <Link
+                to="/sidecar/playground?lang=python"
+                className="px-2 py-0.5 rounded text-[--color-text-secondary] hover:text-[--color-accent] transition-colors"
+              >
+                Python
+              </Link>
+            </span>
           </nav>
           <ThemeToggle />
         </div>
