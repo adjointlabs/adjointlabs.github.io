@@ -14,6 +14,7 @@ import pythonWasmUrl from '@adjointlabs/sidecar-python/tree-sitter-python.wasm?u
 // same graph-editor module instance, so the registered domain is the one the
 // editor sees.
 type DotsEditorType = import('@adjointlabs/graph-editor/standalone').DotsEditor;
+type SelectedElementType = import('@adjointlabs/graph-editor/standalone').SelectedElement;
 type EditorModule = typeof import('@adjointlabs/graph-editor');
 type PythonModule = typeof import('@adjointlabs/sidecar-python/web');
 
@@ -111,6 +112,9 @@ export function PythonPlayground() {
   const [shareCopied, setShareCopied] = useState(false);
   // Full-screen one pane by collapsing the other.
   const [collapsed, setCollapsed] = useState<'code' | 'diagram' | null>(null);
+  // Python source line (1-based) of the first selected box, via the
+  // coupling's correspondence (graph id → python span).
+  const [selLine, setSelLine] = useState<number | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
@@ -128,6 +132,9 @@ export function PythonPlayground() {
   const gridOnRef = useRef(false);
   // Same for the unconnected-port alert.
   const alertPortsOnRef = useRef(false);
+  // Selection ids last seen, to scroll the Python pane only when the
+  // selection actually changes.
+  const lastSelIdsRef = useRef('');
 
   useEffect(() => {
     pyCodeRef.current = pyCode;
@@ -157,6 +164,16 @@ export function PythonPlayground() {
     setEditNotice(reason);
     if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
     noticeTimerRef.current = setTimeout(() => setEditNotice(null), 5000);
+  }, []);
+
+  // Bring a Python source line into view in the code pane (top third), if needed.
+  const scrollCodeToLine = useCallback((line: number) => {
+    const pane = editorRef.current;
+    if (!pane) return;
+    const y = 16 + (line - 1) * 21; // editor padding + line height
+    if (y < pane.scrollTop + 8 || y > pane.scrollTop + pane.clientHeight - 29) {
+      pane.scrollTo({ top: Math.max(0, y - pane.clientHeight / 3), behavior: 'smooth' });
+    }
   }, []);
 
   // Build the whole chain from Python source. Returns the dots.
@@ -216,6 +233,29 @@ export function PythonPlayground() {
         // The header toolbar carries fit/re-layout/undo/redo instead.
         toolbar: false,
         onViewportChange: (z) => setZoom(z),
+        onSelectionChange: (sel: SelectedElementType[]) => {
+          // Editor ids are its own (it re-parses the dots text), so bridge
+          // through the shared DOTS text: editor id → its dots span →
+          // pySpanAtDots (the innermost python-tracked enclosing node) → line.
+          const coupling = couplingRef.current;
+          const editor = dotsEditorRef.current?.editorView.editor;
+          let line: number | null = null;
+          if (coupling && editor) {
+            for (const s of sel) {
+              const dotsSpan = editor.spanOf(s.id);
+              if (!dotsSpan) continue;
+              const span = coupling.pySpanAtDots(dotsSpan);
+              if (span) {
+                line = coupling.pyText.slice(0, span.start).split('\n').length;
+                break;
+              }
+            }
+          }
+          setSelLine(line);
+          const ids = sel.map((s) => s.id).join(',');
+          if (line !== null && ids !== lastSelIdsRef.current) scrollCodeToLine(line);
+          lastSelIdsRef.current = ids;
+        },
         onChange: (newDots) => {
           setDotsCode(newDots);
           refreshDiagnostics();
@@ -261,7 +301,7 @@ export function PythonPlayground() {
       dotsEditorRef.current?.dispose();
       dotsEditorRef.current = null;
     };
-  }, [theme, refreshDiagnostics, rebuildChain, syncChainToEditor, showEditNotice]);
+  }, [theme, refreshDiagnostics, rebuildChain, syncChainToEditor, showEditNotice, scrollCodeToLine]);
 
   // Propagate Python edits through the chain (with debounce), id-stably:
   // surviving statements keep their names, so boxes keep ids and positions.
@@ -574,6 +614,19 @@ export function PythonPlayground() {
               onKeyUp={tab === 'python' ? updateCursorPosition : undefined}
             >
               <div className="relative flex min-h-full w-max min-w-full">
+                {/* Python line of the selected canvas box */}
+                {tab === 'python' && selLine !== null && selLine <= lineCount && (
+                  <div
+                    aria-hidden
+                    className="absolute left-0 right-0 pointer-events-none border-l-2 border-[--color-accent]"
+                    style={{
+                      top: 16 + (selLine - 1) * 21,
+                      height: 21,
+                      // Tailwind's /opacity modifier can't alpha a var() color
+                      backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)',
+                    }}
+                  />
+                )}
                 {/* Line numbers */}
                 <div
                   className="flex-shrink-0 py-4 px-3 text-right select-none border-r border-[--color-border] bg-[--color-surface] sticky left-0 z-10"
